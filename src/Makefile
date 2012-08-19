@@ -1,0 +1,11 @@
+.PHONY: all clean
+OBJECTS=stlink.o main.o
+CFLAGS = `pkg-config --cflags libusb-1.0`
+LIBS = `pkg-config --libs libusb-1.0`
+BIN = stm8flash
+
+all: $(OBJECTS)
+	$(CC) $(OBJECTS) $(LIBS) -o $(BIN)
+
+clean:
+	rm $(OBJECTS) $(BIN)
