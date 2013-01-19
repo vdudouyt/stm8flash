@@ -12,15 +12,20 @@
 #include "stlink.h"
 
 void stlink_send_message(programmer_t *pgm, int count, ...) {
+	// Stlinks are using short bulk transfer messages
+	// in order to communicate.
+	// Each OUT message size equals to 31 bytes for stlink
+	// and 16 bytes for stlink-v2.
 	va_list ap;
-	char data[16];
+	char data[32];
 	int i, r, actual;
 
 	va_start(ap, count);
-	memset(data, 0, 16);
+	assert(pgm->out_msg_size < sizeof(data));
+	memset(data, 0, pgm->out_msg_size);
 	for(i = 0; i < count; i++)
 		data[i] = va_arg(ap, int);
-	r = libusb_bulk_transfer(pgm->dev_handle, (2 | LIBUSB_ENDPOINT_OUT), data, sizeof(data), &actual, 0);
+	r = libusb_bulk_transfer(pgm->dev_handle, (2 | LIBUSB_ENDPOINT_OUT), data, pgm->out_msg_size, &actual, 0);
 	if(pgm->out_usleep)
 		usleep(pgm->out_usleep);
 	if(pgm->debug)

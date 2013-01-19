@@ -10,6 +10,7 @@
 bool stlink2_open(programmer_t *pgm) {
 	pgm->msg_count = 0;
 	pgm->out_usleep = 3000;
+	pgm->out_msg_size = 16;
 	int r, i;
 	char buffer[16];
 	stlink_send_message(pgm, 1, 0xf5);
