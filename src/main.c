@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "pgm.h"
 #include "stlink.h"
+#include "stm8.h"
 
 programmer_t pgms[] = {
 	{ 	"stlink",
@@ -30,7 +31,7 @@ programmer_t pgms[] = {
 };
 
 void print_help_and_exit(const char *name) {
-	fprintf(stderr, "Usage: %s [-c programmer] [-r|-w] [-s memtype] [-f filename] [-b bytes_count]\n", name);
+	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-r|-w] [-s memtype] [-f filename] [-b bytes_count]\n", name);
 	exit(-1);
 }
 
@@ -44,6 +45,13 @@ void dump_pgms(programmer_t *pgms) {
 	int i;
 	for(i = 0; pgms[i].name; i++)
 		fprintf(stderr, "%s\n", pgms[i].name);
+}
+
+void dump_parts(stm8_mcu_spec_t *parts) {
+	// Dump parts list in stderr
+	int i;
+	for(i = 0; parts[i].name; i++)
+		fprintf(stderr, "%s\n", parts[i].name);
 }
 
 bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
@@ -79,16 +87,31 @@ int main(int argc, char **argv) {
 		WRITE
 	} action = NONE;
 	bool start_addr_specified = false,
-		pgm_specified = false;
+		pgm_specified = false,
+		part_specified = false;
+	enum {
+		UNKNOWN,
+		RAM,
+		EEPROM,
+		FLASH,
+	} memtype = FLASH;
 	int i;
 	programmer_t *pgm = NULL;
-	while((c = getopt (argc, argv, "rwc:s:f:b:")) != -1) {
+	stm8_mcu_spec_t *part = NULL;
+	while((c = getopt (argc, argv, "rwc:p:s:f:b:")) != -1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
 				for(i = 0; pgms[i].name; i++) {
 					if(!strcmp(optarg, pgms[i].name))
 						pgm = &pgms[i];
+				}
+				break;
+			case 'p':
+				part_specified = true;
+				for(i = 0; parts[i].name; i++) {
+					if(!strcmp(optarg, parts[i].name))
+						part = &parts[i];
 				}
 				break;
 			case 'r':
@@ -102,7 +125,15 @@ int main(int argc, char **argv) {
 				break;
 			case 's':
 				start_addr_specified = true;
-				assert(sscanf(optarg, "%x", &start));
+				if(!strcmp(optarg, "flash")) {
+					// Start addr is depending on MCU type
+					memtype = FLASH;
+				} else {
+					// Start addr is specified explicitely
+					memtype = UNKNOWN;
+					int success = sscanf(optarg, "%x", &start);
+					assert(success);
+				}
 				break;
 			case 'b':
 				bytes_count = atoi(optarg);
@@ -120,10 +151,37 @@ int main(int argc, char **argv) {
 	}
 	if(!pgm)
 		spawn_error("No programmer has been specified");
+	if(part_specified && !part) {
+		fprintf(stderr, "No valid part specified. Possible values are:\n");
+		dump_parts( (stm8_mcu_spec_t *) &parts);
+		exit(-1);
+	}
+	if(!part)
+		spawn_error("No part has been specified");
+
+	if(memtype != UNKNOWN) {
+		// Selecting start addr depending on 
+		// specified part and memtype
+		start_addr_specified = true;
+		switch(memtype) {
+			case RAM:
+				start = part->ram_start;
+				bytes_count = part->ram_size;
+				break;
+			case EEPROM:
+				start = part->eeprom_start;
+				bytes_count = part->eeprom_size;
+				break;
+			case FLASH:
+				start = part->flash_start;
+				bytes_count = part->flash_size;
+				break;
+		}
+	}
 	if(!action)
 		spawn_error("No action has been specified");
 	if(!start_addr_specified)
-		spawn_error("No start_addr has been specified");
+		spawn_error("No memtype or start_addr has been specified");
 	if(!strlen(filename))
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))

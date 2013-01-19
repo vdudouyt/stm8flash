@@ -64,7 +64,7 @@ int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 }
 
 bool stlink_open(programmer_t *pgm) {
-	printf("stlink_open\n");
+	printf("Not implemented yet. Will get a SWIM error message.\n");
 	int i;
 	for(i = 0; i < 15; i++) {
 		//stlink_send_message(pgm, 5553424308f0cc81
