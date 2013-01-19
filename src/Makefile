@@ -1,6 +1,6 @@
 .PHONY: all clean
-OBJECTS=stlink.o main.o
-CFLAGS = `pkg-config --cflags libusb-1.0`
+OBJECTS=stlink.o stlinkv2.o main.o
+CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0
 LIBS = `pkg-config --libs libusb-1.0`
 BIN = stm8flash
 

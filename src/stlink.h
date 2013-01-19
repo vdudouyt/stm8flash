@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <libusb.h>
+#include <stdbool.h>
 #include "stlink.h"
 
 typedef struct stlink_context_s {
@@ -20,9 +21,11 @@ typedef enum {
 	STLK_SWIM_ERROR
 } stlink_status_t;
 
-stlink_context_t *stlink_init(unsigned int dev_id);
+bool stlink_open(programmer_t *pgm);
+bool stlink2_open(programmer_t *pgm);
+void stlink_close(programmer_t *pgm);
 stlink_status_t stlink_swim_start(stlink_context_t *context);
-int stlink_swim_read_range(stlink_context_t *context, char *buffer, unsigned int start, unsigned int length);
-int stlink_swim_write_range(stlink_context_t *context, char *buffer, unsigned int start, unsigned int length);
+int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
+int stlink2_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
 
 #endif
