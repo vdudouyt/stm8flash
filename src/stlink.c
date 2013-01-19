@@ -21,7 +21,8 @@ void stlink_send_message(programmer_t *pgm, int count, ...) {
 	for(i = 0; i < count; i++)
 		data[i] = va_arg(ap, int);
 	r = libusb_bulk_transfer(pgm->dev_handle, (2 | LIBUSB_ENDPOINT_OUT), data, sizeof(data), &actual, 0);
-	usleep(3000);
+	if(pgm->out_usleep)
+		usleep(pgm->out_usleep);
 	if(pgm->debug)
 		fprintf(stderr, "msg_count=%d r=%d actual=%d\n", pgm->msg_count, r, actual);
 	assert(r == 0);

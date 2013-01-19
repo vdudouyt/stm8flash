@@ -20,6 +20,7 @@ typedef struct programmer_s {
 	libusb_context *ctx;
 	unsigned int debug;
 	unsigned int msg_count; // debugging only
+	unsigned int out_usleep; // stlinkv2 implementation specific, will be deprecated
 } programmer_t;
 
 typedef bool (*pgm_open_cb)(programmer_t *);
