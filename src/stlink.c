@@ -77,6 +77,16 @@ char *pack_int32(uint32_t word, char *out) {
 	return(out+4);
 }
 
+char *pack_int32_le(uint32_t word, char *out) {
+	// Filling with bytes in little-endian order
+	out[0] = (word & 0x000000ff);
+	out[1] = (word & 0x0000ff00) >> 8;
+	out[2] = (word & 0x00ff0000) >> 16;
+	out[3] = (word & 0xff000000) >> 24;
+	// Skipping them
+	return(out+4);
+}
+
 uint32_t unpack_int32(char *block) {
 	uint32_t ret;
 	ret  = *(block + 0) << 24;
@@ -86,11 +96,20 @@ uint32_t unpack_int32(char *block) {
 	return(ret);
 }
 
+uint32_t unpack_int32_le(char *block) {
+	uint32_t ret;
+	ret  = *(block + 3) << 24;
+	ret += *(block + 2) << 16;
+	ret += *(block + 1) << 8;
+	ret += *(block + 0);
+	return(ret);
+}
+
 void pack_usb_cbw(scsi_usb_cbw *cbw, char *out) {
 	char *offset = out;
 	offset = pack_int32(cbw->signature, offset);
 	offset = pack_int32(cbw->tag, offset);
-	offset = pack_int32(cbw->transfer_length, offset);
+	offset = pack_int32_le(cbw->transfer_length, offset);
 	offset[0] = cbw->flags;
 	offset[1] = cbw->LUN;
 	offset[2] = cbw->cblength;
@@ -103,7 +122,7 @@ void pack_usb_cbw(scsi_usb_cbw *cbw, char *out) {
 void unpack_usb_csw(char *block, scsi_usb_csw *out) {
 	out->signature = unpack_int32(block);
 	out->tag = unpack_int32(block + 4);
-	out->data_residue = unpack_int32(block + 8);
+	out->data_residue = unpack_int32_le(block + 8);
 	out->status = block[12];
 }
 
