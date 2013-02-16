@@ -67,13 +67,18 @@ int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	return(ret);
 }
 
-char *pack_int32(uint32_t word, char *out) {
+char *pack_int16(uint32_t word, char *out) {
 	// Filling with bytes in big-endian order
+	out[0] = (word & 0xff00) >> 8;
+	out[1] = (word & 0x00ff);
+	return(out+2);
+}
+
+char *pack_int32(uint32_t word, char *out) {
 	out[0] = (word & 0xff000000) >> 24;
 	out[1] = (word & 0x00ff0000) >> 16;
 	out[2] = (word & 0x0000ff00) >> 8;
 	out[3] = (word & 0x000000ff);
-	// Skipping them
 	return(out+4);
 }
 
@@ -83,7 +88,6 @@ char *pack_int32_le(uint32_t word, char *out) {
 	out[1] = (word & 0x0000ff00) >> 8;
 	out[2] = (word & 0x00ff0000) >> 16;
 	out[3] = (word & 0xff000000) >> 24;
-	// Skipping them
 	return(out+4);
 }
 
@@ -128,6 +132,8 @@ void unpack_usb_csw(char *block, scsi_usb_csw *out) {
 
 int stlink_send_cbw(libusb_device_handle *dev_handle, scsi_usb_cbw *cbw) {
 	unsigned char buf[USB_CBW_SIZE];
+	cbw->signature = USB_CBW_SIGNATURE;
+	cbw->tag = 0x707ec281;
 	pack_usb_cbw(cbw, buf);
 	int actual;
 	int r = libusb_bulk_transfer(dev_handle,
@@ -154,12 +160,12 @@ int stlink_read_csw(libusb_device_handle *dev_handle, scsi_usb_csw *csw) {
 	return(r);
 }
 
+scsi_usb_cbw cbw;
+scsi_usb_csw csw;
+
 int stlink_test_unit_ready(programmer_t *pgm) {
-	scsi_usb_cbw cbw;
-	scsi_usb_csw csw;
+	// This is a default SCSI command
 	memset(&cbw, 0, sizeof(scsi_usb_cbw));
-	cbw.signature = USB_CBW_SIGNATURE;
-	cbw.tag = 0x707ec281;
 	cbw.cblength = 0x06;
 	int r;
 	r = stlink_send_cbw(pgm->dev_handle, &cbw);
@@ -169,17 +175,62 @@ int stlink_test_unit_ready(programmer_t *pgm) {
 	return(csw.status == 0);
 }
 
+int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_out, unsigned char flags,
+			int cblength, ...) {
+	va_list ap;
+	memset(&cbw, 0, sizeof(scsi_usb_cbw));
+	cbw.transfer_length = transfer_length;
+	cbw.flags = flags;
+	cbw.cblength = cblength;
+	va_start(ap, cblength);
+	int i;
+	for(i = 0; i < cblength; i++) {
+		cbw.cb[i] = va_arg(ap, int);
+	}
+	assert( stlink_send_cbw(pgm->dev_handle, &cbw) == 0);
+	if(transfer_length) {
+		// Transfer expected, read some raw data
+		if(transfer_out)
+			stlink_read(pgm, transfer_out, transfer_length);
+		else
+			stlink_read1(pgm, transfer_length);
+	}
+	// Reading status
+	stlink_read_csw(pgm->dev_handle, &csw);
+	return(csw.status == 0);
+}
+
+int stlink_cmd_swim_read(programmer_t *pgm, uint16_t length, uint16_t start) {
+	// This command isn't found in SCSI opcodes specification.
+	memset(&cbw, 0, sizeof(scsi_usb_cbw));
+	cbw.transfer_length = length;
+	cbw.flags = 0x80;
+	cbw.cblength = 0x0a;
+	cbw.cb[0] = 0xf4;
+	cbw.cb[1] = 0x0c;
+	pack_int16(length, cbw.cb+2);
+	pack_int16(start, cbw.cb+6);
+}
+
 bool stlink_open(programmer_t *pgm) {
+	char buf[8];
 	pgm->out_msg_size = 31;
-	int r = stlink_test_unit_ready(pgm);
-	printf("success: %d\n", r);
-	exit(-1);
-//	int i;
-//	for(i = 0; i < 15; i++) {
-//		stlink_send_message(pgm, 15, 0x55, 0x53, 0x42, 0x43, 0x08, 0xf0, 0xcc, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06);
-//		stlink_read1(pgm, 13);
-//		sleep(1);
-//	}
+	stlink_test_unit_ready(pgm);
+	stlink_cmd(pgm, 0x06, buf, 0x80, 6, 0xf1, 0x80, 0x00, 0x00, 0x00, 0x00);
+	stlink_test_unit_ready(pgm);
+	stlink_cmd(pgm, 0x12, buf, 0x80, 6, 0x12, 0x80, 0x00, 0x00, 0x20);
+	stlink_test_unit_ready(pgm);
+	stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf5, 0x00); // Reading status
+	// buf contents:
+	// 0000: ok
+	// 0100: busy
+	// 0300: already initialized
+	stlink_test_unit_ready(pgm);
+	// Note: all the commands above doesn't seem to produce any side effects.
+	stlink_cmd(pgm, 0, NULL, 0x80, 2, 0xf3, 0x07); // Start the init sequence
+	stlink_cmd(pgm, 0, NULL, 0x00, 2, 0xf4, 0x00); // Turn the lights on
+	stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf4, 0x0d);
+	stlink_cmd(pgm, 8, buf, 0x80, 3, 0xf4, 0x02, 0x01); // End init
 	return(true);
 }
 
@@ -188,6 +239,8 @@ void stlink_close(programmer_t *pgm) {
 }
 
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+	printf("stlink_swim_read_range\n");
 }
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+	printf("stlink_swim_write_range\n");
 }

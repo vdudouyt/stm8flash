@@ -17,6 +17,8 @@ programmer_t pgms[] = {
 		0x3744,
 		stlink_open,
 		stlink_close,
+		stlink_swim_read_range,
+		stlink_swim_write_range,
 	},
 	{ 
 		"stlinkv2", 
