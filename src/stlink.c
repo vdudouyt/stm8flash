@@ -67,11 +67,18 @@ int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	return(ret);
 }
 
-char *pack_int16(uint32_t word, char *out) {
+char *pack_int16(uint16_t word, char *out) {
 	// Filling with bytes in big-endian order
 	out[0] = (word & 0xff00) >> 8;
 	out[1] = (word & 0x00ff);
 	return(out+2);
+}
+
+uint16_t unpack_int16_le(char *block) {
+	uint32_t ret;
+	ret = *(block + 1) << 8;
+	ret += *(block + 0);
+	return(ret);
 }
 
 char *pack_int32(uint32_t word, char *out) {
@@ -221,17 +228,22 @@ bool stlink_open(programmer_t *pgm) {
 	stlink_cmd(pgm, 0x12, buf, 0x80, 6, 0x12, 0x80, 0x00, 0x00, 0x20);
 	stlink_test_unit_ready(pgm);
 	stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf5, 0x00); // Reading status
-	// buf contents:
-	// 0000: ok
-	// 0100: busy
-	// 0300: already initialized
 	stlink_test_unit_ready(pgm);
-	// Note: all the commands above doesn't seem to produce any side effects.
-	stlink_cmd(pgm, 0, NULL, 0x80, 2, 0xf3, 0x07); // Start the init sequence
-	stlink_cmd(pgm, 0, NULL, 0x00, 2, 0xf4, 0x00); // Turn the lights on
-	stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf4, 0x0d);
-	stlink_cmd(pgm, 8, buf, 0x80, 3, 0xf4, 0x02, 0x01); // End init
-	return(true);
+	int status = unpack_int16_le(buf);
+	switch(status) {
+		case 0x0000: // Ok
+			stlink_cmd(pgm, 0, NULL, 0x80, 2, 0xf3, 0x07); // Start initializing sequence
+			stlink_cmd(pgm, 0, NULL, 0x00, 2, 0xf4, 0x00); // Turn the lights on
+			stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf4, 0x0d);
+			stlink_cmd(pgm, 8, buf, 0x80, 3, 0xf4, 0x02, 0x01); // End init
+		case 0x0003: // Already initialized
+			return(true);
+		case 0x0001: // Busy
+			break;
+		default:
+			fprintf(stderr, "Unknown status: %x\n", status);
+	}
+	return(false);
 }
 
 void stlink_close(programmer_t *pgm) {
