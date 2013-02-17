@@ -220,7 +220,7 @@ int stlink_cmd_swim_read(programmer_t *pgm, uint16_t length, uint16_t start) {
 }
 
 bool stlink_open(programmer_t *pgm) {
-	char buf[8];
+	char buf[18];
 	pgm->out_msg_size = 31;
 	stlink_test_unit_ready(pgm);
 	stlink_cmd(pgm, 0x06, buf, 0x80, 6, 0xf1, 0x80, 0x00, 0x00, 0x00, 0x00);
