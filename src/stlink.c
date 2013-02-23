@@ -81,6 +81,13 @@ uint16_t unpack_int16_le(char *block) {
 	return(ret);
 }
 
+uint16_t unpack_int16(char *block) {
+	uint32_t ret;
+	ret = *(block + 0) << 8;
+	ret += *(block + 1);
+	return(ret);
+}
+
 char *pack_int32(uint32_t word, char *out) {
 	out[0] = (word & 0xff000000) >> 24;
 	out[1] = (word & 0x00ff0000) >> 16;
@@ -208,7 +215,6 @@ int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_o
 }
 
 int stlink_cmd_swim_read(programmer_t *pgm, uint16_t length, uint16_t start) {
-	// This command isn't found in SCSI opcodes specification.
 	memset(&cbw, 0, sizeof(scsi_usb_cbw));
 	cbw.transfer_length = length;
 	cbw.flags = 0x80;
@@ -251,7 +257,33 @@ void stlink_close(programmer_t *pgm) {
 }
 
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+	char buf[4];
 	printf("stlink_swim_read_range\n");
+	char start2[2], length2[2];
+	pack_int16(length, length2);
+	pack_int16(start, start2);
+	// This makes the light blinking
+	stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
+			0xf4, 0x0b, 
+			length2[0], length2[1],
+			0x00, 0x00, 
+			start2[0], start2[1],
+			0x00, 0x00);
+	// Ready bytes count
+	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
+			0xf4, 0x09, 
+			length2[0], length2[1],
+			0x00, 0x00, 
+			start2[0], start2[1],
+			0x00, 0x00);
+	uint16_t bytes_ready = unpack_int16(buf);
+	// Downloading bytes to *buffer
+	stlink_cmd(pgm, length, NULL, 0x80, 0x0a,
+			0xf4, 0x0c, 
+			length2[0], length2[1],
+			0x00, 0x00, 
+			start2[0], start2[1],
+			0x00, 0x00);
 }
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
 	printf("stlink_swim_write_range\n");
