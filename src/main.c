@@ -32,6 +32,13 @@ programmer_t pgms[] = {
 	{ NULL },
 };
 
+stm8_mcu_spec_t parts[] = {
+	{ "stm8s003", 0x0000, 1*2^10, 0x4000, 128, 0x8000, 8*2^10 },
+	{ "stm8s105", 0x0000, 2*2^10, 0x4000, 2^10, 0x8000, 16*2^10 },
+	{ "stm8l150", 0x0000, 2*2^10, 0x1000, 2^10, 0x8000, 32*2^10 },
+	{ NULL },
+};
+
 void print_help_and_exit(const char *name) {
 	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-r|-w] [-s memtype] [-f filename] [-b bytes_count]\n", name);
 	exit(-1);

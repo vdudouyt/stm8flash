@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <endian.h>
+#include "stm8.h"
 #include "pgm.h"
 #include "stlink.h"
 
@@ -225,6 +226,75 @@ int stlink_cmd_swim_read(programmer_t *pgm, uint16_t length, uint16_t start) {
 	pack_int16(start, cbw.cb+6);
 }
 
+void stlink_init_io(programmer_t *pgm) {
+	int i;
+	char f4_cmd_arg1[] = {	0x07,
+				0x07,
+				0x08,
+				0x07,
+				0x04,
+				};
+	for(i = 0; i < sizeof(f4_cmd_arg1); i++) {
+		stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+				0xf4, f4_cmd_arg1[i],
+				0x01, 0x00,
+				0x00, 0x00,
+				0x00, 0x00,
+				0x00, 0x00);
+		stlink_swim_get_status(pgm);
+	}
+	do {
+		usleep(10000);
+	} while(stlink_swim_get_status(pgm) & 1 != 0);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x03,
+			0xf4, 0x03,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00);
+	stlink_swim_get_status(pgm);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+			0xf4, 0x05,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00);
+	stlink_swim_get_status(pgm);
+}
+
+void stlink_prepare_swim(programmer_t *pgm) {
+	stlink_swim_write_byte(pgm, 0xa0, 0x7f80); // mov 0x0a, SWIM_CSR2 ;; Init
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+			0xf4, 0x08,
+			0x00, 0x01,
+			0x00, 0x00,
+			0x7f, 0x80,
+			0xa0, 0x00);
+	stlink_swim_get_status(pgm);
+	stlink_swim_write_byte(pgm, 0xa0, 0x7f99); // mov 0x0a, DM_CSR2 ;; Stall program
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+			0xf4, 0x06,
+			0x00, 0x01,
+			0x00, 0x00,
+			0x7f, 0x80,
+			0xa0, 0x00);
+	stlink_swim_get_status(pgm);
+	stlink_swim_write_byte(pgm, 0xb0, 0x7f80); 
+	stlink_swim_write_byte(pgm, 0xb4, 0x7f80); 
+	stlink_swim_write_byte(pgm, 0x00, 0x50c0); // mov 0x00, CLK_DIVR
+}
+
+unsigned int stlink_swim_get_status(programmer_t *pgm) {
+	char buf[4];
+	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
+			0xf4, 0x09,
+			0x01, 0x00,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00);
+	return(unpack_int16_le(buf));
+}
+
 bool stlink_open(programmer_t *pgm) {
 	char buf[18];
 	pgm->out_msg_size = 31;
@@ -242,6 +312,7 @@ bool stlink_open(programmer_t *pgm) {
 			stlink_cmd(pgm, 0, NULL, 0x00, 2, 0xf4, 0x00); // Turn the lights on
 			stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf4, 0x0d);
 			stlink_cmd(pgm, 8, buf, 0x80, 3, 0xf4, 0x02, 0x01); // End init
+			stlink_init_io(pgm); // Apply magic
 		case 0x0003: // Already initialized
 			return(true);
 		case 0x0001: // Busy
@@ -256,12 +327,35 @@ void stlink_close(programmer_t *pgm) {
 	libusb_exit(pgm->ctx); //close the session
 }
 
+int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
+	char buf[4], start2[2];
+	pack_int16(start, start2);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x10,
+			0xf4, 0x0a, 
+			0x00, 0x01,
+			0x00, 0x00,
+			start2[0], start2[1],
+			byte, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+	usleep(30000);
+	// Ready bytes count (always 1 here)
+	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
+			0xf4, 0x09, 
+			0x00, 0x01,
+			0x00, 0x00, 
+			start2[0], start2[1],
+			byte, 0x00);
+}
+
+int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
+}
+
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
-	char buf[4];
+	char buf[4], start2[2], length2[2];
 	printf("stlink_swim_read_range\n");
-	char start2[2], length2[2];
 	pack_int16(length, length2);
 	pack_int16(start, start2);
+	stlink_prepare_swim(pgm);
 	// This makes the light blinking
 	stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
 			0xf4, 0x0b, 
@@ -285,6 +379,18 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 			start2[0], start2[1],
 			0x00, 0x00);
 }
+
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
 	printf("stlink_swim_write_range\n");
+	char buf[4];
+	int i;
+	stlink_swim_write_byte(pgm, 0x56, 0x5052); // Unlocking program memory (FLASH_PUKR)
+	stlink_swim_write_byte(pgm, 0xae, 0x5052); 
+	for(i = 0; i < length; i++) {
+		// Waiting FLASH_IAPSR to become ready
+		do {
+			usleep(2000);
+			stlink_swim_read_range(pgm, buf, pgm->target->reg_FLASH_IAPSR, 1);
+		} while(!buf[0] & (1<<3));
+	}
 }
