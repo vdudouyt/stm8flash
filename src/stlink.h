@@ -50,7 +50,6 @@ typedef struct _scsi_usb_csw {
 bool stlink_open(programmer_t *pgm);
 bool stlink2_open(programmer_t *pgm);
 void stlink_close(programmer_t *pgm);
-stlink_status_t stlink_swim_start(stlink_context_t *context);
 unsigned int stlink_swim_get_status(programmer_t *pgm);
 int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
 int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
