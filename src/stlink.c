@@ -376,12 +376,13 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 			0x00, 0x00);
 	uint16_t bytes_ready = unpack_int16(buf);
 	// Downloading bytes to *buffer
-	stlink_cmd(pgm, length, NULL, 0x80, 0x0a,
+	stlink_cmd(pgm, length, buffer, 0x80, 0x0a,
 			0xf4, 0x0c, 
 			length2[0], length2[1],
 			0x00, 0x00, 
 			start2[0], start2[1],
 			0x00, 0x00);
+	return(length);
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
