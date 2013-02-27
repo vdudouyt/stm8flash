@@ -13,8 +13,8 @@
 #include "pgm.h"
 #include "stlink.h"
 
-#define STLK_BIT_ERR 0b00000001
-#define STLK_BIT_BUFFER_FULL 0b00000100
+#define STLK_FLAG_ERR 0b00000001
+#define STLK_FLAG_BUFFER_FULL 0b00000100
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	char data[32];
@@ -335,23 +335,34 @@ void stlink_close(programmer_t *pgm) {
 
 int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
 	char buf[4], start2[2];
+	int result, tries = 0;
 	pack_int16(start, start2);
-	stlink_cmd(pgm, 0, NULL, 0x00, 0x10,
-			0xf4, 0x0a, 
-			0x00, 0x01,
-			0x00, 0x00,
-			start2[0], start2[1],
-			byte, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-	usleep(2000);
-	// Ready bytes count (always 1 here)
-	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
-			0xf4, 0x09, 
-			0x00, 0x01,
-			0x00, 0x00, 
-			start2[0], start2[1],
-			byte, 0x00);
-	return(unpack_int16_le(buf));
+	do {
+		stlink_cmd(pgm, 0, NULL, 0x00, 0x10,
+				0xf4, 0x0a, 
+				0x00, 0x01,
+				0x00, 0x00,
+				start2[0], start2[1],
+				byte, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+		usleep(2000);
+		// Ready bytes count (always 1 here)
+		stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
+				0xf4, 0x09, 
+				0x00, 0x01,
+				0x00, 0x00, 
+				start2[0], start2[1],
+				byte, 0x00);
+		result = unpack_int16_le(buf);
+		tries++;
+		if(result & STLK_FLAG_BUFFER_FULL) {
+			usleep(4000); // Chill out
+			continue;
+		}
+		if(result & STLK_FLAG_ERR)
+			break;
+	} while(result & STLK_FLAG_ERR && tries < 5);
+	return(result);
 }
 
 int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
@@ -400,12 +411,8 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 	stlink_swim_write_byte(pgm, 0x00, 0x5051); // mov 0x00, FLASH_CR2
 	for(i = 0; i < length; i++) {
 		int result = stlink_swim_write_byte(pgm, buffer[i], start + i);
-		if(result & STLK_BIT_BUFFER_FULL) {
-			usleep(2000);
-			i--; // Try again
-		} else if(result & STLK_BIT_ERR) {
-			fprintf(stderr, "Writing error\n");
-		}
+		if(result & STLK_FLAG_ERR)
+			fprintf(stderr, "Write error\n");
 	}
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x00, FLASH_IAPSR
 	return(length);
