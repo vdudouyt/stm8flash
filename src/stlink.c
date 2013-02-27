@@ -341,7 +341,7 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 			start2[0], start2[1],
 			byte, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-	usleep(10000);
+	usleep(2000);
 	// Ready bytes count (always 1 here)
 	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
 			0xf4, 0x09, 
@@ -386,16 +386,18 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
-	printf("stlink_swim_write_range\n");
 	char buf[4];
 	int i;
-	stlink_swim_write_byte(pgm, 0x56, 0x5052); // Unlocking program memory (FLASH_PUKR)
+	stlink_prepare_transfer(pgm);
+	stlink_swim_write_byte(pgm, 0x56, 0x5052); // mov 0x56, FLASH_PUKR ;; unlocking program memory
 	stlink_swim_write_byte(pgm, 0xae, 0x5052); 
+	stlink_swim_write_byte(pgm, 0xae, 0x5053); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
+	stlink_swim_write_byte(pgm, 0x56, 0x5053);
+	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
+	stlink_swim_write_byte(pgm, 0x00, 0x5051); // mov 0x00, FLASH_CR2
 	for(i = 0; i < length; i++) {
-		// Waiting FLASH_IAPSR to become ready
-		do {
-			usleep(2000);
-			stlink_swim_read_range(pgm, buf, 0x7f80, 1);
-		} while(!buf[0] & (1<<3));
+		stlink_swim_write_byte(pgm, buffer[i], start + i);
 	}
+	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x00, FLASH_IAPSR
+	return(length);
 }
