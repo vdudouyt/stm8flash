@@ -13,6 +13,8 @@
 #include "pgm.h"
 #include "stlink.h"
 
+#define STLK_BIT_ERR 0b00000001
+#define STLK_BIT_BUFFER_FULL 0b00000100
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	char data[32];
@@ -349,6 +351,7 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 			0x00, 0x00, 
 			start2[0], start2[1],
 			byte, 0x00);
+	return(unpack_int16_le(buf));
 }
 
 int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
@@ -396,7 +399,13 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
 	stlink_swim_write_byte(pgm, 0x00, 0x5051); // mov 0x00, FLASH_CR2
 	for(i = 0; i < length; i++) {
-		stlink_swim_write_byte(pgm, buffer[i], start + i);
+		int result = stlink_swim_write_byte(pgm, buffer[i], start + i);
+		if(result & STLK_BIT_BUFFER_FULL) {
+			usleep(2000);
+			i--; // Try again
+		} else if(result & STLK_BIT_ERR) {
+			fprintf(stderr, "Writing error\n");
+		}
 	}
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x00, FLASH_IAPSR
 	return(length);
