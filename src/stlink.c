@@ -271,7 +271,6 @@ void stlink_init_session(programmer_t *pgm) {
 			0x7f, 0x80,
 			0xa0, 0x00);
 	stlink_swim_get_status(pgm);
-	stlink_swim_write_byte(pgm, 0xa0, 0x7f99); // mov 0x0a, DM_CSR2 ;; Stall program execution
 	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
 			0xf4, 0x06,
 			0x00, 0x01,
