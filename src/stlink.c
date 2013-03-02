@@ -262,10 +262,8 @@ void stlink_init_session(programmer_t *pgm) {
 			0x00, 0x00,
 			0x00, 0x00);
 	stlink_swim_get_status(pgm);
-}
 
-void stlink_prepare_transfer(programmer_t *pgm) {
-	stlink_swim_write_byte(pgm, 0xa0, 0x7f80); // mov 0x0a, SWIM_CSR2 ;; Init
+	stlink_swim_write_byte(pgm, 0xa0, 0x7f80); // mov 0x0a, SWIM_CSR2 ;; Init SWIM
 	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
 			0xf4, 0x08,
 			0x00, 0x01,
@@ -288,6 +286,28 @@ void stlink_prepare_transfer(programmer_t *pgm) {
 	stlink_swim_get_status(pgm);
 	stlink_swim_write_byte(pgm, 0xb4, 0x7f80); 
 	stlink_swim_write_byte(pgm, 0x00, 0x50c0); // mov 0x00, CLK_DIVR
+}
+
+void stlink_finish_session(programmer_t *pgm) {
+	stlink_swim_write_byte(pgm, 0xb6, 0x7f80);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+			0xf4, 0x05,
+			0x00, 0x01,
+			0x00, 0x00,
+			0x7f, 0x80,
+			0xb6, 0x00);
+	stlink_swim_get_status(pgm);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x0a,
+			0xf4, 0x07,
+			0x00, 0x01,
+			0x00, 0x00,
+			0x7f, 0x80,
+			0xb6, 0x00);
+	stlink_swim_get_status(pgm);
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x03,
+			0xf4, 0x03,
+			0x01);
+	stlink_swim_get_status(pgm);
 }
 
 unsigned int stlink_swim_get_status(programmer_t *pgm) {
@@ -318,7 +338,6 @@ bool stlink_open(programmer_t *pgm) {
 			stlink_cmd(pgm, 0, NULL, 0x00, 2, 0xf4, 0x00); // Turn the lights on
 			stlink_cmd(pgm, 2, buf, 0x80, 2, 0xf4, 0x0d);
 			stlink_cmd(pgm, 8, buf, 0x80, 3, 0xf4, 0x02, 0x01); // End init
-			stlink_init_session(pgm); // Apply magic
 		case 0x0003: // Already initialized
 			return(true);
 		case 0x0001: // Busy
@@ -337,7 +356,9 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 	char buf[4], start2[2];
 	int result, tries = 0;
 	pack_int16(start, start2);
+	printf("stlink_swim_write_byte\n");
 	do {
+		printf("try\n");
 		stlink_cmd(pgm, 0, NULL, 0x00, 0x10,
 				0xf4, 0x0a, 
 				0x00, 0x01,
@@ -354,9 +375,11 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 				start2[0], start2[1],
 				byte, 0x00);
 		result = unpack_int16_le(buf);
+		printf("result=%02x\n", result);
 		tries++;
 		if(result & STLK_FLAG_BUFFER_FULL) {
 			usleep(4000); // Chill out
+			printf("retry\n");
 			continue;
 		}
 		if(result & STLK_FLAG_ERR)
@@ -373,7 +396,7 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 	printf("stlink_swim_read_range\n");
 	pack_int16(length, length2);
 	pack_int16(start, start2);
-	stlink_prepare_transfer(pgm);
+	stlink_init_session(pgm);
 	// This makes the light blinking
 	stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
 			0xf4, 0x0b, 
@@ -396,13 +419,14 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 			0x00, 0x00, 
 			start2[0], start2[1],
 			0x00, 0x00);
+	stlink_finish_session(pgm);
 	return(length);
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
 	char buf[4];
 	int i;
-	stlink_prepare_transfer(pgm);
+	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x56, 0x5052); // mov 0x56, FLASH_PUKR ;; unlocking program memory
 	stlink_swim_write_byte(pgm, 0xae, 0x5052); 
 	stlink_swim_write_byte(pgm, 0xae, 0x5053); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
@@ -415,5 +439,6 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 			fprintf(stderr, "Write error\n");
 	}
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x00, FLASH_IAPSR
+	stlink_finish_session(pgm);
 	return(length);
 }
