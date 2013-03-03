@@ -15,6 +15,8 @@
 
 #define STLK_FLAG_ERR 0b00000001
 #define STLK_FLAG_BUFFER_FULL 0b00000100
+#define STLK_BUFFER_SIZE 6144
+
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	char data[32];
@@ -317,7 +319,7 @@ unsigned int stlink_swim_get_status(programmer_t *pgm) {
 			0x00, 0x00,
 			0x00, 0x00,
 			0x00, 0x00);
-	return(unpack_int16_le(buf));
+	return(unpack_int32_le(buf));
 }
 
 bool stlink_open(programmer_t *pgm) {
@@ -374,7 +376,6 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 				start2[0], start2[1],
 				byte, 0x00);
 		result = unpack_int16_le(buf);
-		printf("result=%02x\n", result);
 		tries++;
 		if(result & STLK_FLAG_BUFFER_FULL) {
 			usleep(4000); // Chill out
@@ -391,33 +392,41 @@ int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int st
 }
 
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
-	char buf[4], start2[2], length2[2];
+	char buf[4];
 	printf("stlink_swim_read_range\n");
-	pack_int16(length, length2);
-	pack_int16(start, start2);
 	stlink_init_session(pgm);
-	// This makes the light blinking
-	stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
-			0xf4, 0x0b, 
-			length2[0], length2[1],
-			0x00, 0x00, 
-			start2[0], start2[1],
-			0x00, 0x00);
-	// Ready bytes count
-	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
-			0xf4, 0x09, 
-			length2[0], length2[1],
-			0x00, 0x00, 
-			start2[0], start2[1],
-			0x00, 0x00);
-	uint16_t bytes_ready = unpack_int16(buf);
-	// Downloading bytes to *buffer
-	stlink_cmd(pgm, length, buffer, 0x80, 0x0a,
-			0xf4, 0x0c, 
-			length2[0], length2[1],
-			0x00, 0x00, 
-			start2[0], start2[1],
-			0x00, 0x00);
+	int i;
+	for(i = 0; i < length; i += STLK_BUFFER_SIZE) {
+		char block_start2[2], block_size2[2];
+		int block_start = start + i;
+		// Determining block size
+		int block_size = length - i;
+		if(block_size > STLK_BUFFER_SIZE)
+			block_size = STLK_BUFFER_SIZE;
+		printf("Reading %d bytes from %x\n", block_size, block_start);
+		// Starting SWIM transfer
+		pack_int16(block_start, block_start2);
+		pack_int16(block_size, block_size2);
+		stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
+				0xf4, 0x0b, 
+				block_size2[0], block_size2[1],
+				0x00, 0x00, 
+				block_start2[0], block_start2[1],
+				0x00, 0x00);
+		// Waiting until the data becomes ready
+		int result;
+		do {
+			usleep(2000);
+			result = stlink_swim_get_status(pgm);
+		} while(result & 1);
+		// Downloading bytes from stlink
+		stlink_cmd(pgm, block_size, &(buffer[i]), 0x80, 0x0a,
+				0xf4, 0x0c, 
+				block_size2[0], block_size2[1],
+				0x00, 0x00, 
+				block_start2[0], block_start2[1],
+				0x00, 0x00);
+	}
 	stlink_finish_session(pgm);
 	return(length);
 }
