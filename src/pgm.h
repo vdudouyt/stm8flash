@@ -18,7 +18,6 @@ typedef struct programmer_s {
 	/* Private */
 	libusb_device_handle *dev_handle;
 	libusb_context *ctx;
-	unsigned int debug;
 	unsigned int msg_count; // debugging only
 	unsigned int out_usleep; // stlinkv2 implementation specific, will be deprecated
 	unsigned int out_msg_size; // stlink/stlinkv2

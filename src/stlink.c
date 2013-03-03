@@ -12,6 +12,7 @@
 #include "stm8.h"
 #include "pgm.h"
 #include "stlink.h"
+#include "utils.h"
 
 #define STLK_FLAG_ERR 0b00000001
 #define STLK_FLAG_BUFFER_FULL 0b00000100
@@ -31,8 +32,6 @@ void stlink_send_message(programmer_t *pgm, int count, ...) {
 	r = libusb_bulk_transfer(pgm->dev_handle, (2 | LIBUSB_ENDPOINT_OUT), data, pgm->out_msg_size, &actual, 0);
 	if(pgm->out_usleep)
 		usleep(pgm->out_usleep);
-	if(pgm->debug)
-		fprintf(stderr, "msg_count=%d r=%d actual=%d\n", pgm->msg_count, r, actual);
 	assert(r == 0);
 	pgm->msg_count++;
 	return;
@@ -42,21 +41,12 @@ int stlink_read(programmer_t *pgm, char *buffer, int count) {
 	int r, recv;
 	r = libusb_bulk_transfer(pgm->dev_handle, (1 | LIBUSB_ENDPOINT_IN), buffer, count, &recv, 0);
 	assert(r==0);
-	if(pgm->debug && recv > 16) printf("Received block recv=%d\n", recv);
 	return(recv);
 }
 
 int stlink_read1(programmer_t *pgm, int count) {
 	char buf[16];
-	int recv = stlink_read(pgm, buf, count);
-	if(pgm->debug) {
-		// Dumping received data
-		int i;
-		for(i = 0; i < recv; i++)
-			fprintf(stderr, "%02x", buf[i]);
-		fprintf(stderr, "\n");
-	}
-	return(recv);
+	return(stlink_read(pgm, buf, count));
 }
 
 int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
@@ -357,9 +347,8 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 	char buf[4], start2[2];
 	int result, tries = 0;
 	pack_int16(start, start2);
-	printf("stlink_swim_write_byte\n");
+	DEBUG_PRINT("stlink_swim_write_byte\n");
 	do {
-		printf("try\n");
 		stlink_cmd(pgm, 0, NULL, 0x00, 0x10,
 				0xf4, 0x0a, 
 				0x00, 0x01,
@@ -379,7 +368,7 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 		tries++;
 		if(result & STLK_FLAG_BUFFER_FULL) {
 			usleep(4000); // Chill out
-			printf("retry\n");
+			DEBUG_PRINT("retry\n");
 			continue;
 		}
 		if(result & STLK_FLAG_ERR)
@@ -393,7 +382,7 @@ int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int st
 
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
 	char buf[4];
-	printf("stlink_swim_read_range\n");
+	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
 	int i;
 	for(i = 0; i < length; i += STLK_BUFFER_SIZE) {
@@ -403,7 +392,7 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 		int block_size = length - i;
 		if(block_size > STLK_BUFFER_SIZE)
 			block_size = STLK_BUFFER_SIZE;
-		printf("Reading %d bytes from %x\n", block_size, block_start);
+		DEBUG_PRINT("Reading %d bytes from %x\n", block_size, block_start);
 		// Starting SWIM transfer
 		pack_int16(block_start, block_start2);
 		pack_int16(block_size, block_size2);
