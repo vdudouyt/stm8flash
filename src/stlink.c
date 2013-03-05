@@ -421,6 +421,15 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 	return(length);
 }
 
+int stlink_swim_wait(programmer_t *pgm) {
+	int result;
+	do {
+		usleep(2000);
+		result = stlink_swim_get_status(pgm);
+	} while(result & 1);
+	return(result);
+}
+
 int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 			unsigned int start,
 			unsigned int length1, // Amount to be transferred with CBW
@@ -458,7 +467,8 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 				0);
 		assert(actual == length2 + padding);
 	}
-	return(length1 + length2);
+	int result = stlink_swim_wait(pgm);
+	return(result);
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
@@ -471,7 +481,7 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 	stlink_swim_write_byte(pgm, 0x56, 0x5053);
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
 	stlink_swim_write_byte(pgm, 0x00, 0x5051); // mov 0x00, FLASH_CR2
-	for(i = 0; i < length; i++) {
+	for(i = 0; i < length; i+=128) {
 		int result = stlink_swim_write_byte(pgm, buffer[i], start + i);
 		if(result & STLK_FLAG_ERR)
 			fprintf(stderr, "Write error\n");
