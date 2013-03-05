@@ -16,7 +16,8 @@
 
 #define STLK_FLAG_ERR 0b00000001
 #define STLK_FLAG_BUFFER_FULL 0b00000100
-#define STLK_BUFFER_SIZE 6144
+#define STLK_READ_BUFFER_SIZE 6144
+#define STLK_MAX_WRITE 512
 
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
@@ -385,13 +386,13 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
 	int i;
-	for(i = 0; i < length; i += STLK_BUFFER_SIZE) {
+	for(i = 0; i < length; i += STLK_READ_BUFFER_SIZE) {
 		char block_start2[2], block_size2[2];
 		int block_start = start + i;
 		// Determining block size
 		int block_size = length - i;
-		if(block_size > STLK_BUFFER_SIZE)
-			block_size = STLK_BUFFER_SIZE;
+		if(block_size > STLK_READ_BUFFER_SIZE)
+			block_size = STLK_READ_BUFFER_SIZE;
 		DEBUG_PRINT("Reading %d bytes from %x\n", block_size, block_start);
 		// Starting SWIM transfer
 		pack_int16(block_start, block_start2);
@@ -418,6 +419,46 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 	}
 	stlink_finish_session(pgm);
 	return(length);
+}
+
+int stlink_swim_write_block(programmer_t *pgm, char *buffer,
+			unsigned int start,
+			unsigned int length1, // Amount to be transferred with CBW
+			unsigned int length2, // Amount to be transferred with additional transfer
+			unsigned int padding
+			) {
+	char block_size2[2], block_start2[2];
+	// Some logical checks
+	assert(padding >= 0 && padding <= 1);
+	assert(length1 + padding <= 8);
+	assert(length2 < STLK_MAX_WRITE - 6);
+	// Filling CBW
+	memset(&cbw, 0, sizeof(scsi_usb_cbw));
+	cbw.transfer_length = length2 + padding;
+	cbw.flags = 0x00;
+	cbw.cblength = 0x10;
+	cbw.cb[0] = 0xf4;
+	cbw.cb[1] = 0x0a;
+	memcpy(cbw.cb+2, block_size2, 2);
+	memcpy(cbw.cb+6, block_start2, 2);
+	memcpy(cbw.cb+8+padding, block_start2, length1);
+	if(padding) cbw.cb[8] = '\0';
+	assert( stlink_send_cbw(pgm->dev_handle, &cbw) == 0);
+	if(length2) {
+		// Sending the rest
+		char tail[STLK_MAX_WRITE-6];
+		memcpy(tail, buffer + length1, length2);
+		if(padding) tail[length2] = '\1';
+		int actual;
+		int r = libusb_bulk_transfer(pgm->dev_handle,
+				(2 | LIBUSB_ENDPOINT_OUT),
+				tail,
+				length2 + padding,
+				&actual,
+				0);
+		assert(actual == length2 + padding);
+	}
+	return(length1 + length2);
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
