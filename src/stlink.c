@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <endian.h>
 #include "stm8.h"
 #include "pgm.h"
@@ -187,6 +188,7 @@ int stlink_test_unit_ready(programmer_t *pgm) {
 
 int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_out, unsigned char flags,
 			int cblength, ...) {
+	// Build CBW from va_args and commit it
 	va_list ap;
 	memset(&cbw, 0, sizeof(scsi_usb_cbw));
 	cbw.transfer_length = transfer_length;
@@ -197,13 +199,18 @@ int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_o
 	for(i = 0; i < cblength; i++) {
 		cbw.cb[i] = va_arg(ap, int);
 	}
-	assert( stlink_send_cbw(pgm->dev_handle, &cbw) == 0);
-	if(transfer_length) {
+	return(stlink_commit(pgm, transfer_out, &cbw));
+}
+
+int stlink_commit(programmer_t *pgm, unsigned char *transfer_out, scsi_usb_cbw *cbw) {
+	// Commit prepared CBW
+	assert( stlink_send_cbw(pgm->dev_handle, cbw) == 0);
+	if(cbw->transfer_length) {
 		// Transfer expected, read some raw data
 		if(transfer_out)
-			stlink_read(pgm, transfer_out, transfer_length);
+			stlink_read(pgm, transfer_out, cbw->transfer_length);
 		else
-			stlink_read1(pgm, transfer_length);
+			stlink_read1(pgm, cbw->transfer_length);
 	}
 	// Reading status
 	stlink_read_csw(pgm->dev_handle, &csw);
@@ -304,12 +311,14 @@ void stlink_finish_session(programmer_t *pgm) {
 
 unsigned int stlink_swim_get_status(programmer_t *pgm) {
 	char buf[4];
-	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
-			0xf4, 0x09,
-			0x01, 0x00,
-			0x00, 0x00,
-			0x00, 0x00,
-			0x00, 0x00);
+	// Keep previous CBW untouched except for 
+	// options and first two bytes
+	cbw.transfer_length = 4;
+	cbw.flags = 0x80;
+	cbw.cblength = 0x0a;
+	cbw.cb[0] = 0xf4;
+	cbw.cb[1] = 0x09;
+	stlink_commit(pgm, buf, &cbw);
 	return(unpack_int32_le(buf));
 }
 
@@ -426,21 +435,32 @@ int stlink_swim_wait(programmer_t *pgm) {
 	do {
 		usleep(2000);
 		result = stlink_swim_get_status(pgm);
+		if(result & 4) {
+			fprintf(stderr, "Transfer error\n");
+			exit(-1);
+		}
 	} while(result & 1);
 	return(result);
 }
 
 int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 			unsigned int start,
-			unsigned int length1, // Amount to be transferred with CBW
-			unsigned int length2, // Amount to be transferred with additional transfer
+			unsigned int length,
 			unsigned int padding
 			) {
+	int length1 = 8 - padding; // Amount to be transferred with CBW
+	int length2 = length - 8 + padding; // Amount to be transferred with additional transfer
+	if (length2 < 0) length2 = 0;
 	char block_size2[2], block_start2[2];
+	pack_int16(start, block_start2);
+	pack_int16(length, block_size2);
 	// Some logical checks
 	assert(padding >= 0 && padding <= 1);
+	assert(length1 + length2 == length);
 	assert(length1 + padding <= 8);
 	assert(length2 < STLK_MAX_WRITE - 6);
+	assert(length1 > 0);
+	assert(length2 > 0);
 	// Filling CBW
 	memset(&cbw, 0, sizeof(scsi_usb_cbw));
 	cbw.transfer_length = length2 + padding;
@@ -450,9 +470,10 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	cbw.cb[1] = 0x0a;
 	memcpy(cbw.cb+2, block_size2, 2);
 	memcpy(cbw.cb+6, block_start2, 2);
-	memcpy(cbw.cb+8+padding, block_start2, length1);
+	memcpy(cbw.cb+8+padding, buffer, length1);
 	if(padding) cbw.cb[8] = '\0';
 	assert( stlink_send_cbw(pgm->dev_handle, &cbw) == 0);
+	usleep(3000);
 	if(length2) {
 		// Sending the rest
 		char tail[STLK_MAX_WRITE-6];
@@ -467,6 +488,9 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 				0);
 		assert(actual == length2 + padding);
 	}
+	// Reading status
+	stlink_read_csw(pgm->dev_handle, &csw);
+	assert(csw.status == 0);
 	int result = stlink_swim_wait(pgm);
 	return(result);
 }
