@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <endian.h>
 #include "stm8.h"
 #include "pgm.h"
@@ -188,7 +187,6 @@ int stlink_test_unit_ready(programmer_t *pgm) {
 
 int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_out, unsigned char flags,
 			int cblength, ...) {
-	// Build CBW from va_args and commit it
 	va_list ap;
 	memset(&cbw, 0, sizeof(scsi_usb_cbw));
 	cbw.transfer_length = transfer_length;
@@ -199,18 +197,13 @@ int stlink_cmd(programmer_t *pgm, int transfer_length, unsigned char *transfer_o
 	for(i = 0; i < cblength; i++) {
 		cbw.cb[i] = va_arg(ap, int);
 	}
-	return(stlink_commit(pgm, transfer_out, &cbw));
-}
-
-int stlink_commit(programmer_t *pgm, unsigned char *transfer_out, scsi_usb_cbw *cbw) {
-	// Commit prepared CBW
-	assert( stlink_send_cbw(pgm->dev_handle, cbw) == 0);
-	if(cbw->transfer_length) {
+	assert( stlink_send_cbw(pgm->dev_handle, &cbw) == 0);
+	if(transfer_length) {
 		// Transfer expected, read some raw data
 		if(transfer_out)
-			stlink_read(pgm, transfer_out, cbw->transfer_length);
+			stlink_read(pgm, transfer_out, transfer_length);
 		else
-			stlink_read1(pgm, cbw->transfer_length);
+			stlink_read1(pgm, transfer_length);
 	}
 	// Reading status
 	stlink_read_csw(pgm->dev_handle, &csw);
@@ -311,14 +304,12 @@ void stlink_finish_session(programmer_t *pgm) {
 
 unsigned int stlink_swim_get_status(programmer_t *pgm) {
 	char buf[4];
-	// Keep previous CBW untouched except for 
-	// options and first two bytes
-	cbw.transfer_length = 4;
-	cbw.flags = 0x80;
-	cbw.cblength = 0x0a;
-	cbw.cb[0] = 0xf4;
-	cbw.cb[1] = 0x09;
-	stlink_commit(pgm, buf, &cbw);
+	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
+			0xf4, 0x09,
+			0x01, 0x00,
+			0x00, 0x00,
+			0x00, 0x00,
+			0x00, 0x00);
 	return(unpack_int32_le(buf));
 }
 
@@ -435,10 +426,6 @@ int stlink_swim_wait(programmer_t *pgm) {
 	do {
 		usleep(2000);
 		result = stlink_swim_get_status(pgm);
-		if(result & 4) {
-			fprintf(stderr, "Transfer error\n");
-			exit(-1);
-		}
 	} while(result & 1);
 	return(result);
 }
@@ -491,12 +478,14 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	// Reading status
 	stlink_read_csw(pgm->dev_handle, &csw);
 	assert(csw.status == 0);
+	memset(cbw.cb+8, 0, 8);
+	cbw.cb[8] = 0x01;
+	cbw.cb[9] = 0x02;
 	int result = stlink_swim_wait(pgm);
 	return(result);
 }
 
 int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
-	char buf[4];
 	int i;
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x56, 0x5052); // mov 0x56, FLASH_PUKR ;; unlocking program memory
@@ -504,9 +493,12 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 	stlink_swim_write_byte(pgm, 0xae, 0x5053); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
 	stlink_swim_write_byte(pgm, 0x56, 0x5053);
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
-	stlink_swim_write_byte(pgm, 0x00, 0x5051); // mov 0x00, FLASH_CR2
 	for(i = 0; i < length; i+=128) {
-		int result = stlink_swim_write_byte(pgm, buffer[i], start + i);
+		int block_size = length - i;
+		if(block_size > 128)
+			block_size = 128;
+		stlink_swim_write_byte(pgm, 0x01, 0x5051); // mov 0x01, FLASH_CR2
+		int result = stlink_swim_write_block(pgm, buffer + i, start + i, block_size, 0);
 		if(result & STLK_FLAG_ERR)
 			fprintf(stderr, "Write error\n");
 	}
