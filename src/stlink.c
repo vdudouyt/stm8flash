@@ -494,11 +494,21 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 	stlink_swim_write_byte(pgm, 0x56, 0x5053);
 	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
 	for(i = 0; i < length; i+=128) {
+		char block[128];
 		int block_size = length - i;
-		if(block_size > 128)
-			block_size = 128;
+		if(block_size > sizeof(block))
+			block_size = sizeof(block);
+		DEBUG_PRINT("Writing block %04x with size %d\n", start+i, block_size);
+		memset(block, 0, sizeof(block));
+		memcpy(block, buffer+i, block_size);
+		if(block_size < sizeof(block)) {
+			DEBUG_PRINT("Padding block %04x with %d zeroes\n",
+					start+i,
+					sizeof(block) - block_size);
+			block_size = sizeof(block);
+		}
 		stlink_swim_write_byte(pgm, 0x01, 0x5051); // mov 0x01, FLASH_CR2
-		int result = stlink_swim_write_block(pgm, buffer + i, start + i, block_size, 0);
+		int result = stlink_swim_write_block(pgm, block, start + i, block_size, 0);
 		if(result & STLK_FLAG_ERR)
 			fprintf(stderr, "Write error\n");
 	}
