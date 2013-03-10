@@ -9,3 +9,6 @@ all: $(OBJECTS)
 
 clean:
 	rm $(OBJECTS) $(BIN)
+
+install:
+	cp $(BIN) $(DESTDIR)/usr/bin/
