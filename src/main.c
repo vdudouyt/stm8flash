@@ -13,10 +13,11 @@
 
 programmer_t pgms[] = {
 	{ 	"stlink",
-		0x0483,
-		0x3744,
+		0x0483, // USB vid
+		0x3744, // USB pid
 		stlink_open,
 		stlink_close,
+		stlink_swim_srst,
 		stlink_swim_read_range,
 		stlink_swim_write_range,
 	},
@@ -26,6 +27,7 @@ programmer_t pgms[] = {
 		0x3748,
 		stlink2_open,
 		stlink_close,
+		NULL,
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
 	},
@@ -112,7 +114,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	stm8_mcu_spec_t *part = NULL;
-	while((c = getopt (argc, argv, "rwc:p:s:f:b:")) != -1) {
+	while((c = getopt (argc, argv, "rwnc:p:s:f:b:")) != -1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -229,6 +231,10 @@ int main(int argc, char **argv) {
 		fread(buf, 1, bytes_count, f);
 		/* flashing MCU */
 		int sent = pgm->write_range(pgm, buf, start, bytes_count);
+		if(pgm->reset) {
+			// Restarting core (if applicable)
+			pgm->reset(pgm);
+		}
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes written: %d\n", sent);
 		fclose(f);

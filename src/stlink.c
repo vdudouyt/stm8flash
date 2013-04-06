@@ -272,7 +272,7 @@ void stlink_init_session(programmer_t *pgm) {
 			0xa0, 0x00);
 	stlink_swim_get_status(pgm);
 	stlink_swim_write_byte(pgm, 0xb0, 0x7f80); 
-	stlink_cmd(pgm, 0, NULL, 0x00, 0x03, // Or only zeroes will be received
+	stlink_cmd(pgm, 0, NULL, 0x00, 0x03, // Elsewise, only zeroes will be received
 			0xf4, 0x03,
 			0x01);
 	stlink_swim_get_status(pgm);
@@ -344,6 +344,17 @@ void stlink_close(programmer_t *pgm) {
 	libusb_exit(pgm->ctx); //close the session
 }
 
+void stlink_swim_srst(programmer_t *pgm) {
+	// Ready bytes count (always 1 here)
+	stlink_cmd(pgm, 0, NULL, 0x80, 0x0a,
+			0xf4, 0x08, 
+			0x00, 0x01,
+			0x00, 0x00, 
+			0x00, 0x00, 
+			0x00, 0x00);
+	stlink_swim_get_status(pgm);
+}
+
 int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
 	char buf[4], start2[2];
 	int result, tries = 0;
@@ -376,9 +387,6 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 			break;
 	} while(result & STLK_FLAG_ERR && tries < 5);
 	return(result);
-}
-
-int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
 }
 
 int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
@@ -424,7 +432,7 @@ int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, 
 int stlink_swim_wait(programmer_t *pgm) {
 	int result;
 	do {
-		usleep(2000);
+		usleep(3000);
 		result = stlink_swim_get_status(pgm);
 	} while(result & 1);
 	return(result);
