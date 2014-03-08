@@ -31,8 +31,6 @@ void stlink_send_message(programmer_t *pgm, int count, ...) {
 	for(i = 0; i < count; i++)
 		data[i] = va_arg(ap, int);
 	r = libusb_bulk_transfer(pgm->dev_handle, (2 | LIBUSB_ENDPOINT_OUT), data, pgm->out_msg_size, &actual, 0);
-	if(pgm->out_usleep)
-		usleep(pgm->out_usleep);
 	assert(r == 0);
 	pgm->msg_count++;
 	return;
@@ -277,7 +275,7 @@ void stlink_init_session(programmer_t *pgm) {
 			0x01);
 	stlink_swim_get_status(pgm);
 	stlink_swim_write_byte(pgm, 0xb4, 0x7f80); 
-	stlink_swim_write_byte(pgm, 0x00, 0x50c0); // mov 0x00, CLK_DIVR
+	stlink_swim_write_byte(pgm, 0x00, 0x50c6); // mov 0x00, CLK_DIVR
 }
 
 void stlink_finish_session(programmer_t *pgm) {

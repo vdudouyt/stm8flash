@@ -1,5 +1,5 @@
 /* stlink/v2 stm8 memory programming utility
-   (c) Valentin Dudouyt, 2012 - 2013 */
+   (c) Valentin Dudouyt, 2012 - 2014 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,7 +205,6 @@ int main(int argc, char **argv) {
 		print_help_and_exit(argv[0]);
 	if(!usb_init(pgm, pgm->usb_vid, pgm->usb_pid))
 		spawn_error("Couldn't initialize stlink");
-	pgm->out_usleep = 0; // Init
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
 	FILE *f;
