@@ -106,10 +106,9 @@ void stlink2_init_session(programmer_t *pgm) {
 	stlink2_cmd(pgm, 0xf408, 0);
 	TRY(8, stlink2_get_status(pgm) == 0);
 
-	stlink2_write_byte2(pgm, 0xa0, 0x7f99);
+	stlink2_write_and_read_byte(pgm, 0xa0, 0x7f99);
 	stlink2_cmd(pgm, 0xf40c, 0);
 	msg_recv_int8(pgm); // 0x08 (or 0x0a if used stlink2_write_byte() instead)
-	stlink2_write_byte(pgm, 0xa0, 0x50cd); // mov 0xa0, CLK_SWIMCCR
 }
 
 int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
@@ -124,7 +123,19 @@ int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start
 	return(stlink2_get_status(pgm)); // Should be '1'
 }
 
-int stlink2_write_byte2(programmer_t *pgm, unsigned char byte, unsigned int start) {
+int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
+	char buf[4], start2[2];
+	pack_int16(start, start2);
+	stlink2_cmd(pgm, 0xf40a, 8,
+			0x00, 0x02,
+			0x00, 0x00,
+			HI(start), LO(start),
+			HI(word), LO(word));
+	usleep(2000);
+	return(stlink2_get_status(pgm)); // Should be '1'
+}
+
+int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
 	char buf[4], start2[2];
 	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40b, 7,
@@ -133,7 +144,10 @@ int stlink2_write_byte2(programmer_t *pgm, unsigned char byte, unsigned int star
 			HI(start), LO(start),
 			byte);
 	usleep(2000);
-	return(stlink2_get_status(pgm));
+	stlink2_get_status(pgm);
+
+	stlink2_cmd(pgm, 0xf40c, 0);
+	return(msg_recv_int8(pgm));
 }
 
 unsigned int stlink2_get_status(programmer_t *pgm) {
@@ -142,7 +156,6 @@ unsigned int stlink2_get_status(programmer_t *pgm) {
 }
 
 int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
-	printf("read_range\n");
 	stlink2_init_session(pgm);
 
 	int i;
@@ -169,32 +182,48 @@ int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start,
 	return(length);
 }
 
+void stlink2_wait_until_transfer_completes(programmer_t *pgm) {
+	do {
+		stlink2_write_and_read_byte(pgm, 0x00, 0x505f);
+		stlink2_cmd(pgm, 0xf40c, 0);
+		usleep(1000);
+	} while(msg_recv_int8(pgm) == 0x2a);
+}
+
 int stlink2_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
 	stlink2_init_session(pgm);
+
+	stlink2_write_byte(pgm, 0x00, 0x50c6); // mov 0x00, CLK_CKDIVR
+	stlink2_write_and_read_byte(pgm, 0x00, 0x505f); // mov 0x00, FLASH_CR2
 
 	stlink2_write_byte(pgm, 0x56, 0x5062); // mov 0x56, FLASH_PUKR ;; unlocking program memory
 	stlink2_write_byte(pgm, 0xae, 0x5062); 
 	stlink2_write_byte(pgm, 0xae, 0x5064); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
 	stlink2_write_byte(pgm, 0x56, 0x5064);
-	stlink2_write_byte(pgm, 0x56, 0x505f); // mov 0x56, FLASH_IAPSR
+	stlink2_write_and_read_byte(pgm, 0x56, 0x505f); // mov 0x56, FLASH_IAPSR
 
 	int i;
-	#define BLOCK_SIZE 128
+	#define BLOCK_SIZE 0x40
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
-		// The first 7 packet bytes are getting transmitted
-		// with the same bulk transfer as the command itself
-		stlink2_write_byte(pgm, 0x01, 0x5061); // mov 0x01, FLASH_CR2
+		stlink2_write_word(pgm, 0x01fe, 0x505b); // mov 0x01fe, FLASH_CR2
+
+		// The first 8 packet bytes are getting transmitted
+		// with the same USB bulk transfer as the command itself
 		msg_init(cmd_buf, 0xf40a);
-		format_int(&(cmd_buf[2]), BLOCK_SIZE + 1, 2, MP_BIG_ENDIAN);
-		format_int(&(cmd_buf[6]), 0x012f, 2, MP_BIG_ENDIAN);
-		memcpy(&(cmd_buf[9]), &(buffer[i]), 7);
+		format_int(&(cmd_buf[2]), BLOCK_SIZE, 2, MP_BIG_ENDIAN);
+		format_int(&(cmd_buf[6]), start + i, 2, MP_BIG_ENDIAN);
+		memcpy(&(cmd_buf[8]), &(buffer[i]), 8);
 		msg_send(pgm, cmd_buf, sizeof(cmd_buf));
 
 		// Transmitting the rest
-		msg_send(pgm, &(buffer[i + 7]), BLOCK_SIZE - 7);
+		msg_send(pgm, &(buffer[i + 8]), BLOCK_SIZE - 8);
 
 		// Waiting for the transfer to process
-		TRY(128, (stlink2_get_status(pgm) & 0xff) == 0);
+		TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
+
+		stlink2_wait_until_transfer_completes(pgm);
 	}
+	stlink2_write_and_read_byte(pgm, 0x56, 0x505f); // mov 0x56, FLASH_IAPSR
+	return(length);
 }
 
