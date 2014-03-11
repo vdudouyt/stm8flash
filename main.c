@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	stm8_mcu_spec_t *part = NULL;
-	while((c = getopt (argc, argv, "rwnc:p:s:f:b:")) != -1) {
+	while((c = getopt (argc, argv, "r:w:nc:p:s:b:")) != -1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -133,11 +133,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'r':
 				action = READ;
+				strcpy(filename, optarg);
 				break;
 			case 'w':
 				action = WRITE;
-				break;
-			case 'f':
 				strcpy(filename, optarg);
 				break;
 			case 's':
