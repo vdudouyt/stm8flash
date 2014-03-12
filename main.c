@@ -66,6 +66,11 @@ void dump_parts(stm8_mcu_spec_t *parts) {
 		fprintf(stderr, "%s\n", parts[i].name);
 }
 
+bool is_ext(const char *filename, const char *ext) {
+	char *ext_begin = strrchr(filename, '.');
+	return(strcmp(ext_begin, ext) == 0);
+}
+
 bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	libusb_device **devs;
 	libusb_context *ctx = NULL;
@@ -221,15 +226,22 @@ int main(int argc, char **argv) {
 	} else if (action == WRITE) {
 		fprintf(stderr, "Writing at 0x%x... ", start);
 		f = fopen(filename, "r");
-		fseek(f, 0L, SEEK_END);
-		/* preparing buffer */
-		bytes_count = ftell(f);
 		char *buf = malloc(bytes_count);
-		if(!buf) spawn_error("malloc failed");
-		fseek(f, 0, SEEK_SET);
-		fread(buf, 1, bytes_count, f);
+		int bytes_to_write;
+
+		/* reading bytes to RAM */
+		if(is_ext(filename, ".ihx")) {
+			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
+		} else {
+			fseek(f, 0L, SEEK_END);
+			bytes_to_write = ftell(f);
+			if(!buf) spawn_error("malloc failed");
+			fseek(f, 0, SEEK_SET);
+			fread(buf, 1, bytes_to_write, f);
+		}
+
 		/* flashing MCU */
-		int sent = pgm->write_range(pgm, buf, start, bytes_count);
+		int sent = pgm->write_range(pgm, buf, start, bytes_to_write);
 		if(pgm->reset) {
 			// Restarting core (if applicable)
 			pgm->reset(pgm);
