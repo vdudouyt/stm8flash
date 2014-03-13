@@ -17,6 +17,10 @@
 
 char cmd_buf[16];
 
+unsigned int stlink2_get_status(programmer_t *pgm);
+int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+
 static unsigned int msg_transfer(programmer_t *pgm, char *buf, unsigned int length, int direction) {
 	int bytes_transferred;
 	int ep = (direction == LIBUSB_ENDPOINT_OUT) ? 2 : 1;

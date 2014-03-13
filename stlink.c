@@ -19,6 +19,10 @@
 #define STLK_READ_BUFFER_SIZE 6144
 #define STLK_MAX_WRITE 512
 
+unsigned int stlink_swim_get_status(programmer_t *pgm);
+int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	char data[32];
