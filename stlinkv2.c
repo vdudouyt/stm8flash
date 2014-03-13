@@ -91,6 +91,13 @@ bool stlink2_open(programmer_t *pgm) {
 	return(true);
 }
 
+void stlink2_srst(programmer_t *pgm) {
+	stlink2_cmd(pgm, 0xf407, 2, 0x00, 0x01);
+	stlink2_get_status(pgm);
+	stlink2_cmd(pgm, 0xf408, 2, 0x00, 0x01);
+	stlink2_get_status(pgm);
+}
+
 void stlink2_init_session(programmer_t *pgm) {
 	int i;
 	char f4_cmd_arg1[] = {	0x07,
@@ -119,6 +126,8 @@ void stlink2_finish_session(programmer_t *pgm) {
 	stlink2_cmd(pgm, 0xf405, 0);
 	stlink2_get_status(pgm);
 	stlink2_cmd(pgm, 0xf407, 0);
+	stlink2_get_status(pgm);
+	stlink2_cmd(pgm, 0xf403, 0);
 	stlink2_get_status(pgm);
 }
 
@@ -235,6 +244,8 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buf
 		stlink2_wait_until_transfer_completes(pgm, device);
 	}
 	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+	stlink2_write_byte(pgm, 0x00, 0x7f80);
+	stlink2_write_byte(pgm, 0xb6, 0x7f80);
 	stlink2_finish_session(pgm);
 	return(length);
 }
