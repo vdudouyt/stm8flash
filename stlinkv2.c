@@ -115,6 +115,13 @@ void stlink2_init_session(programmer_t *pgm) {
 	msg_recv_int8(pgm); // 0x08 (or 0x0a if used stlink2_write_byte() instead)
 }
 
+void stlink2_finish_session(programmer_t *pgm) {
+	stlink2_cmd(pgm, 0xf405, 0);
+	stlink2_get_status(pgm);
+	stlink2_cmd(pgm, 0xf407, 0);
+	stlink2_get_status(pgm);
+}
+
 int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
 	char buf[4], start2[2];
 	pack_int16(start, start2);
@@ -228,6 +235,7 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buf
 		stlink2_wait_until_transfer_completes(pgm, device);
 	}
 	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+	stlink2_finish_session(pgm);
 	return(length);
 }
 
