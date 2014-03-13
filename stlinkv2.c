@@ -155,7 +155,7 @@ unsigned int stlink2_get_status(programmer_t *pgm) {
 	return msg_recv_int32(pgm);
 }
 
-int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
 	stlink2_init_session(pgm);
 
 	int i;
@@ -182,30 +182,30 @@ int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start,
 	return(length);
 }
 
-void stlink2_wait_until_transfer_completes(programmer_t *pgm) {
+void stlink2_wait_until_transfer_completes(programmer_t *pgm, stm8_device_t *device) {
 	do {
-		stlink2_write_and_read_byte(pgm, 0x00, 0x505f);
+		stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
 		stlink2_cmd(pgm, 0xf40c, 0);
 		usleep(1000);
 	} while(msg_recv_int8(pgm) == 0x2a);
 }
 
-int stlink2_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
 	stlink2_init_session(pgm);
 
-	stlink2_write_byte(pgm, 0x00, 0x50c6); // mov 0x00, CLK_CKDIVR
-	stlink2_write_and_read_byte(pgm, 0x00, 0x505f); // mov 0x00, FLASH_CR2
+	stlink2_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
+	stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
 
-	stlink2_write_byte(pgm, 0x56, 0x5062); // mov 0x56, FLASH_PUKR ;; unlocking program memory
-	stlink2_write_byte(pgm, 0xae, 0x5062); 
-	stlink2_write_byte(pgm, 0xae, 0x5064); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
-	stlink2_write_byte(pgm, 0x56, 0x5064);
-	stlink2_write_and_read_byte(pgm, 0x56, 0x505f); // mov 0x56, FLASH_IAPSR
+	stlink2_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
+	stlink2_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
+	stlink2_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
+	stlink2_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
+	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
 
 	int i;
 	#define BLOCK_SIZE 0x40
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
-		stlink2_write_word(pgm, 0x01fe, 0x505b); // mov 0x01fe, FLASH_CR2
+		stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
 
 		// The first 8 packet bytes are getting transmitted
 		// with the same USB bulk transfer as the command itself
@@ -221,9 +221,9 @@ int stlink2_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start
 		// Waiting for the transfer to process
 		TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
 
-		stlink2_wait_until_transfer_completes(pgm);
+		stlink2_wait_until_transfer_completes(pgm, device);
 	}
-	stlink2_write_and_read_byte(pgm, 0x56, 0x505f); // mov 0x56, FLASH_IAPSR
+	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
 	return(length);
 }
 

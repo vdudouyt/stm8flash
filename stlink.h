@@ -48,15 +48,12 @@ typedef struct _scsi_usb_csw {
 } scsi_usb_csw;
 
 bool stlink_open(programmer_t *pgm);
-bool stlink2_open(programmer_t *pgm);
 void stlink_close(programmer_t *pgm);
 unsigned int stlink_swim_get_status(programmer_t *pgm);
 void stlink_swim_srst(programmer_t *pgm);
 int stlink_swim_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
 int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
-int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
-int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
-int stlink2_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
-int stlink2_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length);
+int stlink_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length);
+int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length);
 
 #endif

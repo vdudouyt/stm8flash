@@ -275,7 +275,6 @@ void stlink_init_session(programmer_t *pgm) {
 			0x01);
 	stlink_swim_get_status(pgm);
 	stlink_swim_write_byte(pgm, 0xb4, 0x7f80); 
-	stlink_swim_write_byte(pgm, 0x00, 0x50c6); // mov 0x00, CLK_DIVR
 }
 
 void stlink_finish_session(programmer_t *pgm) {
@@ -387,10 +386,11 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 	return(result);
 }
 
-int stlink_swim_read_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+int stlink_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
 	char buf[4];
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
+	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR); // mov 0x00, CLK_DIVR
 	int i;
 	for(i = 0; i < length; i += STLK_READ_BUFFER_SIZE) {
 		char block_start2[2], block_size2[2];
@@ -491,14 +491,15 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	return(result);
 }
 
-int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start, unsigned int length) {
+int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
 	int i;
 	stlink_init_session(pgm);
-	stlink_swim_write_byte(pgm, 0x56, 0x5052); // mov 0x56, FLASH_PUKR ;; unlocking program memory
-	stlink_swim_write_byte(pgm, 0xae, 0x5052); 
-	stlink_swim_write_byte(pgm, 0xae, 0x5053); // mov 0x56, FLASH_DUKR ;; unlocking EEPROM memory
-	stlink_swim_write_byte(pgm, 0x56, 0x5053);
-	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x56, FLASH_IAPSR
+	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
+	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
+	stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
+	stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
+	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
+	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
 	for(i = 0; i < length; i+=128) {
 		char block[128];
 		int block_size = length - i;
@@ -513,12 +514,12 @@ int stlink_swim_write_range(programmer_t *pgm, char *buffer, unsigned int start,
 					sizeof(block) - block_size);
 			block_size = sizeof(block);
 		}
-		stlink_swim_write_byte(pgm, 0x01, 0x5051); // mov 0x01, FLASH_CR2
+		stlink_swim_write_byte(pgm, 0x01, device->regs.FLASH_CR2);
 		int result = stlink_swim_write_block(pgm, block, start + i, block_size, 0);
 		if(result & STLK_FLAG_ERR)
 			fprintf(stderr, "Write error\n");
 	}
-	stlink_swim_write_byte(pgm, 0x56, 0x5054); // mov 0x00, FLASH_IAPSR
+	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
 	stlink_finish_session(pgm);
 	return(length);
 }

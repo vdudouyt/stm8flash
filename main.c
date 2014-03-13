@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "pgm.h"
 #include "stlink.h"
+#include "stlinkv2.h"
 #include "stm8.h"
 
 programmer_t pgms[] = {
@@ -34,14 +35,6 @@ programmer_t pgms[] = {
 	{ NULL },
 };
 
-stm8_mcu_spec_t parts[] = {
-	{ "stm8s003", 0x0000, 1*1024, 0x4000, 128, 0x8000, 8*1024 },
-	{ "stm8s103", 0x0000, 1*1024, 0x4000, 640, 0x8000, 8*1024 },
-	{ "stm8s105", 0x0000, 2*1024, 0x4000, 1024, 0x8000, 16*1024 },
-	{ "stm8l150", 0x0000, 2*1024, 0x1000, 1024, 0x8000, 32*1024 },
-	{ NULL },
-};
-
 void print_help_and_exit(const char *name) {
 	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-r|-w] [-s memtype] [-f filename] [-b bytes_count]\n", name);
 	exit(-1);
@@ -59,11 +52,11 @@ void dump_pgms(programmer_t *pgms) {
 		fprintf(stderr, "%s\n", pgms[i].name);
 }
 
-void dump_parts(stm8_mcu_spec_t *parts) {
+void dump_devices(stm8_device_t *devices) {
 	// Dump parts list in stderr
 	int i;
-	for(i = 0; parts[i].name; i++)
-		fprintf(stderr, "%s\n", parts[i].name);
+	for(i = 0; devices[i].name; i++)
+		fprintf(stderr, "%s\n", devices[i].name);
 }
 
 bool is_ext(const char *filename, const char *ext) {
@@ -119,7 +112,7 @@ int main(int argc, char **argv) {
 	} memtype = FLASH;
 	int i;
 	programmer_t *pgm = NULL;
-	stm8_mcu_spec_t *part = NULL;
+	stm8_device_t *part = NULL;
 	while((c = getopt (argc, argv, "r:w:nc:p:s:b:")) != -1) {
 		switch(c) {
 			case 'c':
@@ -131,9 +124,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'p':
 				part_specified = true;
-				for(i = 0; parts[i].name; i++) {
-					if(!strcmp(optarg, parts[i].name))
-						part = &parts[i];
+				for(i = 0; stm8_devices[i].name; i++) {
+					if(!strcmp(optarg, stm8_devices[i].name))
+						part = &stm8_devices[i];
 				}
 				break;
 			case 'r':
@@ -174,7 +167,7 @@ int main(int argc, char **argv) {
 		spawn_error("No programmer has been specified");
 	if(part_specified && !part) {
 		fprintf(stderr, "No valid part specified. Possible values are:\n");
-		dump_parts( (stm8_mcu_spec_t *) &parts);
+		dump_devices( (stm8_device_t *) &stm8_devices);
 		exit(-1);
 	}
 	if(!part)
@@ -217,7 +210,7 @@ int main(int argc, char **argv) {
 		fflush(stderr);
 		char *buf = malloc(bytes_count);
 		if(!buf) spawn_error("malloc failed");
-		int recv = pgm->read_range(pgm, buf, start, bytes_count);
+		int recv = pgm->read_range(pgm, part, buf, start, bytes_count);
 		f = fopen(filename, "w");
 		fwrite(buf, 1, recv, f);
 		fclose(f);
@@ -241,7 +234,7 @@ int main(int argc, char **argv) {
 		}
 
 		/* flashing MCU */
-		int sent = pgm->write_range(pgm, buf, start, bytes_to_write);
+		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write);
 		if(pgm->reset) {
 			// Restarting core (if applicable)
 			pgm->reset(pgm);
