@@ -3,12 +3,12 @@ stm8flash
 
 This is a free and opensource software distributed under the terms of GNU General Public License v2.
 
-Typical usage:
+It also seems to be the only peace of code that's able to communicate through the SWIM interface of ST-LINKs under Linux and Mac OS X.
 
-./stm8flash -rs4000 -feeprom.bin -b128
+Synopsis:
 
-./stm8flash -ws4000 -feeprom.bin
-
-./stm8flash -ws8000 -fflash.bin
-
-(Refer to Memory and register map section of your datasheet for futher details)
+```nohighlight
+./stm8flash -c stlink -p stm8s003 -w blinky.bin
+./stm8flash -c stlink -p stm8s003 -w blinky.ihx
+./stm8flash -c stlinkv2 -p stm8s003 -w blinky.ihx
+```
