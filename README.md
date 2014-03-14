@@ -3,7 +3,7 @@ stm8flash
 
 This is a free and opensource software distributed under the terms of GNU General Public License v2.
 
-It also seems to be the only peace of code that's able to communicate through the SWIM interface of ST-LINKs under Linux and Mac OS X.
+It also seems to be the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux as for March, 2014.
 
 Synopsis:
 
