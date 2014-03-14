@@ -219,7 +219,7 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buf
 	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
 
 	int i;
-	#define BLOCK_SIZE 0x40
+	int BLOCK_SIZE = device->flash_block_size;
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
 		stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
 
