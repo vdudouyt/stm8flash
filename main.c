@@ -36,7 +36,7 @@ programmer_t pgms[] = {
 };
 
 void print_help_and_exit(const char *name) {
-	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-r|-w] [-s memtype] [-f filename] [-b bytes_count]\n", name);
+	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-r|-w] <filename>\n", name);
 	exit(-1);
 }
 
