@@ -203,9 +203,7 @@ int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buff
 }
 
 void stlink2_wait_until_transfer_completes(programmer_t *pgm, stm8_device_t *device) {
-	do {
-		stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR);
-	} while(msg_recv_int8(pgm) == 0x2a);
+	TRY(8, stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR) != 0x2a);
 }
 
 int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
