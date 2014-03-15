@@ -26,6 +26,7 @@ stm8_device_t stm8_devices[] = {
 	  .eeprom_size = 128,
 	  .flash_start = 0x8000,
 	  .flash_size = 8*1024,
+      .flash_block_size = 64,
 	  REGS_STM8S
 	},
 	{
@@ -36,6 +37,7 @@ stm8_device_t stm8_devices[] = {
 	  .eeprom_size = 640,
 	  .flash_start = 0x8000,
 	  .flash_size = 8*1024,
+      .flash_block_size = 64,
 	  REGS_STM8S
 	 },
 	{
@@ -46,6 +48,7 @@ stm8_device_t stm8_devices[] = {
 	  .eeprom_size = 1024,
 	  .flash_start = 0x8000,
 	  .flash_size = 16*1024,
+      .flash_block_size = 128,
 	  REGS_STM8S
 	 },
 	{
@@ -56,6 +59,7 @@ stm8_device_t stm8_devices[] = {
 	  .eeprom_size = 2048,
 	  .flash_start = 0x8000,
 	  .flash_size = 32*1024,
+      .flash_block_size = 128,
 	  REGS_STM8S
 	 },
 	{
@@ -66,6 +70,7 @@ stm8_device_t stm8_devices[] = {
 	  .eeprom_size = 1024,
 	  .flash_start = 0x8000,
 	  .flash_size = 32*1024,
+      .flash_block_size = 128,
 	  REGS_STM8L
 	 },
 	{ NULL },

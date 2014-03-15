@@ -20,6 +20,7 @@ typedef struct stm8_device {
 	unsigned int eeprom_size;
 	unsigned int flash_start;
 	unsigned int flash_size;
+    unsigned int flash_block_size;
 	stm8_regs_t regs;
 } stm8_device_t;
 
