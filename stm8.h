@@ -10,6 +10,7 @@ typedef struct stm8_regs {
 	unsigned int FLASH_DUKR;
 	unsigned int FLASH_IAPSR;
 	unsigned int FLASH_CR2;
+	unsigned int FLASH_NCR2;
 } stm8_regs_t;
 
 typedef struct stm8_device {
