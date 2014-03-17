@@ -8,7 +8,7 @@ all: $(OBJECTS)
 	$(CC) $(OBJECTS) $(LIBS) -o $(BIN)
 
 clean:
-	rm $(OBJECTS) $(BIN)
+	-rm -f $(OBJECTS) $(BIN)
 
 install:
 	cp $(BIN) $(DESTDIR)/usr/bin/
