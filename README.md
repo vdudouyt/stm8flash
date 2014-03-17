@@ -11,4 +11,6 @@ Synopsis:
 ./stm8flash -c stlink -p stm8s003 -w blinky.bin
 ./stm8flash -c stlink -p stm8s003 -w blinky.ihx
 ./stm8flash -c stlinkv2 -p stm8s003 -w blinky.ihx
+./stm8flash -c stlink -p stm8s105 -w blinky.bin
+./stm8flash -c stlinkv2 -p stm8l150 -w blinky.bin
 ```

@@ -7,14 +7,17 @@
 		.FLASH_DUKR = 0x5064,  \
 		.FLASH_IAPSR = 0x505f, \
 		.FLASH_CR2 = 0x505b,   \
+		.FLASH_NCR2 = 0x505c,   \
 }
 
+// Note: FLASH_NCR2 not present on stm8l
 #define REGS_STM8L { \
 		.CLK_CKDIVR = 0x50c6,  \
 		.FLASH_PUKR = 0x5052,  \
 		.FLASH_DUKR = 0x5053,  \
 		.FLASH_IAPSR = 0x5054, \
 		.FLASH_CR2 = 0x5051,   \
+		.FLASH_NCR2 = 0x0000,   \
 }
 
 stm8_device_t stm8_devices[] = {

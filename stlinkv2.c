@@ -221,7 +221,11 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buf
 	int i;
 	int BLOCK_SIZE = device->flash_block_size;
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
-		stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
+		// stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
+		stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
+        if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
+            stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
+        }
 
 		// The first 8 packet bytes are getting transmitted
 		// with the same USB bulk transfer as the command itself
