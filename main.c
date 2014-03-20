@@ -61,6 +61,9 @@ void dump_devices(stm8_device_t *devices) {
 
 bool is_ext(const char *filename, const char *ext) {
 	char *ext_begin = strrchr(filename, '.');
+	if(!ext_begin) {
+		return false;
+	}
 	return(strcmp(ext_begin, ext) == 0);
 }
 
