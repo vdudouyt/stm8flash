@@ -61,10 +61,7 @@ void dump_devices(stm8_device_t *devices) {
 
 bool is_ext(const char *filename, const char *ext) {
 	char *ext_begin = strrchr(filename, '.');
-	if(!ext_begin) {
-		return false;
-	}
-	return(strcmp(ext_begin, ext) == 0);
+	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
 bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
@@ -214,24 +211,27 @@ int main(int argc, char **argv) {
 		char *buf = malloc(bytes_count);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count);
-		f = fopen(filename, "w");
+		if(!(f = fopen(filename, "w")))
+			spawn_error("Failed to open file");
 		fwrite(buf, 1, recv, f);
 		fclose(f);
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes received: %d\n", recv);
 	} else if (action == WRITE) {
-		fprintf(stderr, "Writing at 0x%x... ", start);
-		f = fopen(filename, "r");
+		if(!(f = fopen(filename, "r")))
+			spawn_error("Failed to open file");
 		char *buf = malloc(bytes_count);
+		if(!buf) spawn_error("malloc failed");
 		int bytes_to_write;
 
 		/* reading bytes to RAM */
 		if(is_ext(filename, ".ihx")) {
+			fprintf(stderr, "Writing Intel hex file at 0x%x... ", start);
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
 		} else {
+			fprintf(stderr, "Writing binary file at 0x%x... ", start);
 			fseek(f, 0L, SEEK_END);
 			bytes_to_write = ftell(f);
-			if(!buf) spawn_error("malloc failed");
 			fseek(f, 0, SEEK_SET);
 			fread(buf, 1, bytes_to_write, f);
 		}
