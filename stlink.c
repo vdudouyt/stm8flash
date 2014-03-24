@@ -495,15 +495,24 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	return(result);
 }
 
-int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
+int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	int i;
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
-	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
-	stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
-	stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
-	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
-	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink_swim_write_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
+    }
+    if(memtype == FLASH) {
+        stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
+        stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
+    }
+    if(memtype == EEPROM || memtype == OPT) {
+        stlink_swim_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
+        stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
+    }
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
+    }
 	for(i = 0; i < length; i+=128) {
 		char block[128];
 		int block_size = length - i;
@@ -518,15 +527,19 @@ int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buff
 					sizeof(block) - block_size);
 			block_size = sizeof(block);
 		}
-		stlink_swim_write_byte(pgm, 0x01, device->regs.FLASH_CR2);
-        if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
-            stlink_swim_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
+        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+            stlink_swim_write_byte(pgm, 0x01, device->regs.FLASH_CR2);
+            if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
+                stlink_swim_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
+            }
         }
 		int result = stlink_swim_write_block(pgm, block, start + i, block_size, 0);
 		if(result & STLK_FLAG_ERR)
 			fprintf(stderr, "Write error\n");
 	}
-	stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
+    }
 	stlink_finish_session(pgm);
 	return(length);
 }

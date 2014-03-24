@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
-#include "pgm.h"
 #include "stlink.h"
 #include "error.h"
 #include "try.h"
@@ -206,25 +205,36 @@ void stlink2_wait_until_transfer_completes(programmer_t *pgm, stm8_device_t *dev
 	TRY(8, stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR) & 0x4);
 }
 
-int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
+int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	stlink2_init_session(pgm);
 
 	stlink2_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
-	stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
+    }
 
-	stlink2_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
-	stlink2_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
-	stlink2_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
-	stlink2_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
-	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+    if(memtype == FLASH) {
+        stlink2_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
+        stlink2_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
+    }
+    if(memtype == EEPROM || memtype == OPT) {
+        stlink2_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
+        stlink2_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
+    }
+
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+    }
 
 	int i;
 	int BLOCK_SIZE = device->flash_block_size;
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
-		// stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
-		stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
-        if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
-            stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
+        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+            // stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
+            stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
+            if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
+                stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
+            }
         }
 
 		// The first 8 packet bytes are getting transmitted
@@ -241,9 +251,13 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buf
 		// Waiting for the transfer to process
 		TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
 
-		stlink2_wait_until_transfer_completes(pgm, device);
+        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+            stlink2_wait_until_transfer_completes(pgm, device);
+        }
 	}
-	stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
+    }
 	stlink2_write_byte(pgm, 0x00, 0x7f80);
 	stlink2_write_byte(pgm, 0xb6, 0x7f80);
 	stlink2_finish_session(pgm);
