@@ -513,19 +513,20 @@ int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buff
     if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
         stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
     }
-	for(i = 0; i < length; i+=128) {
+    int flash_block_size = device->flash_block_size;
+	for(i = 0; i < length; i+=flash_block_size) {
 		char block[128];
-		int block_size = length - i;
-		if(block_size > sizeof(block))
-			block_size = sizeof(block);
-		DEBUG_PRINT("Writing block %04x with size %d\n", start+i, block_size);
 		memset(block, 0, sizeof(block));
+		int block_size = length - i;
+		if(block_size > flash_block_size)
+			block_size = flash_block_size;
+		DEBUG_PRINT("Writing block %04x with size %d\n", start+i, block_size);
 		memcpy(block, buffer+i, block_size);
-		if(block_size < sizeof(block)) {
+		if(block_size < flash_block_size) {
 			DEBUG_PRINT("Padding block %04x with %d zeroes\n",
 					start+i,
-					sizeof(block) - block_size);
-			block_size = sizeof(block);
+					flash_block_size - block_size);
+			block_size = flash_block_size;
 		}
         if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
             stlink_swim_write_byte(pgm, 0x01, device->regs.FLASH_CR2);
