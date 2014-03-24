@@ -256,6 +256,44 @@ int main(int argc, char **argv) {
     } else if (action == VERIFY) {
 		fprintf(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
 		fflush(stderr);
+
+        int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
+		char *buf = malloc(bytes_count_align);
+		if(!buf) spawn_error("malloc failed");
+		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
+        if(recv < bytes_count_align) {
+            fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+			spawn_error("Failed to read MCU");
+        }
+
+		if(!(f = fopen(filename, "r")))
+			spawn_error("Failed to open file");
+		char *buf2 = malloc(bytes_count);
+		if(!buf2) spawn_error("malloc failed");
+		int bytes_to_verify;
+		/* reading bytes to RAM */
+		if(is_ext(filename, ".ihx")) {
+			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
+		} else {
+			fseek(f, 0L, SEEK_END);
+			bytes_to_verify = ftell(f);
+            if(bytes_count_specified) {
+                bytes_to_verify = bytes_count; 
+            } else if(bytes_count < bytes_to_verify) {
+                bytes_to_verify = bytes_count; 
+            }
+			fseek(f, 0, SEEK_SET);
+			fread(buf2, 1, bytes_to_verify, f);
+		}
+		fclose(f);
+
+        if(memcmp(buf, buf2, bytes_to_verify) == 0) {
+            fprintf(stderr, "OK\n");
+            fprintf(stderr, "Bytes verified: %d\n", bytes_to_verify);
+        } else {
+            fprintf(stderr, "FAILED\n");
+            exit(-1);
+        }
 	} else if (action == WRITE) {
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
