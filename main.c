@@ -36,7 +36,7 @@ programmer_t pgms[] = {
 };
 
 void print_help_and_exit(const char *name) {
-	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-r|-w] <filename>\n", name);
+	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-r|-w|-v] <filename>\n", name);
 	exit(-1);
 }
 
@@ -96,24 +96,16 @@ int main(int argc, char **argv) {
 	memset(filename, 0, sizeof(filename));
 	// Parsing command line
 	char c;
-	enum {
-		NONE = 0,
-		READ,
-		WRITE
-	} action = NONE;
+	action_t action = NONE;
 	bool start_addr_specified = false,
 		pgm_specified = false,
-		part_specified = false;
-	enum {
-		UNKNOWN,
-		RAM,
-		EEPROM,
-		FLASH,
-	} memtype = FLASH;
+		part_specified = false,
+        bytes_count_specified = false;
+	memtype_t memtype = FLASH;
 	int i;
 	programmer_t *pgm = NULL;
 	stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:nc:p:s:b:")) != -1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:")) != -1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -137,20 +129,31 @@ int main(int argc, char **argv) {
 				action = WRITE;
 				strcpy(filename, optarg);
 				break;
+			case 'v':
+				action = VERIFY;
+				strcpy(filename, optarg);
+				break;
 			case 's':
-				start_addr_specified = true;
-				if(!strcmp(optarg, "flash")) {
-					// Start addr is depending on MCU type
+                // Start addr is depending on MCU type
+				if(strcasecmp(optarg, "flash") == 0) {
 					memtype = FLASH;
+                } else if(strcasecmp(optarg, "eeprom") == 0) {
+					memtype = EEPROM;
+                } else if(strcasecmp(optarg, "ram") == 0) {
+					memtype = RAM;
+                } else if(strcasecmp(optarg, "opt") == 0) {
+					memtype = OPT;
 				} else {
 					// Start addr is specified explicitely
 					memtype = UNKNOWN;
 					int success = sscanf(optarg, "%x", &start);
 					assert(success);
+                    start_addr_specified = true;
 				}
 				break;
 			case 'b':
 				bytes_count = atoi(optarg);
+                bytes_count_specified = true;
 				break;
 			default:
 				print_help_and_exit(argv[0]);
@@ -173,24 +176,52 @@ int main(int argc, char **argv) {
 	if(!part)
 		spawn_error("No part has been specified");
 
+    // Try define memory type by address
+	if(memtype == UNKNOWN) {
+        if((start >= part->ram_start) && (start < part->ram_start + part->ram_size)) {
+            memtype = RAM;
+        }
+        else if((start >= part->flash_start) && (start < part->flash_start + part->flash_size)) {
+            memtype = FLASH;
+        }
+        else if((start >= part->eeprom_start) && (start < part->eeprom_start + part->eeprom_size)) {
+            memtype = EEPROM;
+        }
+    }
+
 	if(memtype != UNKNOWN) {
 		// Selecting start addr depending on 
 		// specified part and memtype
-		start_addr_specified = true;
 		switch(memtype) {
 			case RAM:
-				start = part->ram_start;
-				bytes_count = part->ram_size;
+                if(!start_addr_specified) {
+                    start = part->ram_start;
+                }
+                if(!bytes_count_specified || bytes_count > part->ram_size) {
+                    bytes_count = part->ram_size;
+                }
+                fprintf(stderr, "Determine RAM area\r\n");
 				break;
 			case EEPROM:
-				start = part->eeprom_start;
-				bytes_count = part->eeprom_size;
+                if(!start_addr_specified) {
+                    start = part->eeprom_start;
+                }
+                if(!bytes_count_specified || bytes_count > part->eeprom_size) {
+                    bytes_count = part->eeprom_size;
+                }
+                fprintf(stderr, "Determine EEPROM area\r\n");
 				break;
 			case FLASH:
-				start = part->flash_start;
-				bytes_count = part->flash_size;
+                if(!start_addr_specified) {
+                    start = part->flash_start;
+                }
+                if(!bytes_count_specified || bytes_count > part->flash_size) {
+                    bytes_count = part->flash_size;
+                }
+                fprintf(stderr, "Determine FLASH area\r\n");
 				break;
 		}
+		start_addr_specified = true;
 	}
 	if(!action)
 		spawn_error("No action has been specified");
@@ -206,38 +237,92 @@ int main(int argc, char **argv) {
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
 	FILE *f;
 	if(action == READ) {
-		fprintf(stderr, "Reading at 0x%x... ", start);
+		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
 		fflush(stderr);
-		char *buf = malloc(bytes_count);
+        int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
+		char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
-		int recv = pgm->read_range(pgm, part, buf, start, bytes_count);
+		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
+        if(recv < bytes_count_align) {
+            fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+			spawn_error("Failed to read MCU");
+        }
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		fwrite(buf, 1, recv, f);
+		fwrite(buf, 1, bytes_count, f);
 		fclose(f);
 		fprintf(stderr, "OK\n");
-		fprintf(stderr, "Bytes received: %d\n", recv);
+		fprintf(stderr, "Bytes received: %d\n", bytes_count);
+    } else if (action == VERIFY) {
+		fprintf(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
+		fflush(stderr);
+
+        int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
+		char *buf = malloc(bytes_count_align);
+		if(!buf) spawn_error("malloc failed");
+		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
+        if(recv < bytes_count_align) {
+            fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+			spawn_error("Failed to read MCU");
+        }
+
+		if(!(f = fopen(filename, "r")))
+			spawn_error("Failed to open file");
+		char *buf2 = malloc(bytes_count);
+		if(!buf2) spawn_error("malloc failed");
+		int bytes_to_verify;
+		/* reading bytes to RAM */
+		if(is_ext(filename, ".ihx")) {
+			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
+		} else {
+			fseek(f, 0L, SEEK_END);
+			bytes_to_verify = ftell(f);
+            if(bytes_count_specified) {
+                bytes_to_verify = bytes_count; 
+            } else if(bytes_count < bytes_to_verify) {
+                bytes_to_verify = bytes_count; 
+            }
+			fseek(f, 0, SEEK_SET);
+			fread(buf2, 1, bytes_to_verify, f);
+		}
+		fclose(f);
+
+        if(memcmp(buf, buf2, bytes_to_verify) == 0) {
+            fprintf(stderr, "OK\n");
+            fprintf(stderr, "Bytes verified: %d\n", bytes_to_verify);
+        } else {
+            fprintf(stderr, "FAILED\n");
+            exit(-1);
+        }
 	} else if (action == WRITE) {
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
-		char *buf = malloc(bytes_count);
+        int bytes_count_align = ((bytes_count-1)/part->flash_block_size+1)*part->flash_block_size;
+		char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
+        memset(buf, 0, bytes_count_align); // Clean aligned buffer
 		int bytes_to_write;
 
 		/* reading bytes to RAM */
 		if(is_ext(filename, ".ihx")) {
-			fprintf(stderr, "Writing Intel hex file at 0x%x... ", start);
+			fprintf(stderr, "Writing Intel hex file ");
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
 		} else {
-			fprintf(stderr, "Writing binary file at 0x%x... ", start);
+			fprintf(stderr, "Writing binary file ");
 			fseek(f, 0L, SEEK_END);
 			bytes_to_write = ftell(f);
+            if(bytes_count_specified) {
+                bytes_to_write = bytes_count; 
+            } else if(bytes_count < bytes_to_write) {
+                bytes_to_write = bytes_count; 
+            }
 			fseek(f, 0, SEEK_SET);
 			fread(buf, 1, bytes_to_write, f);
 		}
+		fprintf(stderr, "%d bytes at 0x%x... ", bytes_to_write, start);
 
 		/* flashing MCU */
-		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write);
+		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write, memtype);
 		if(pgm->reset) {
 			// Restarting core (if applicable)
 			pgm->reset(pgm);

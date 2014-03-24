@@ -4,6 +4,21 @@
 #include <libusb.h>
 #include "stm8.h"
 
+typedef enum {
+    UNKNOWN,
+    RAM,
+    EEPROM,
+    FLASH,
+    OPT,
+} memtype_t;
+
+typedef enum {
+    NONE = 0,
+    READ,
+    WRITE,
+    VERIFY
+} action_t;
+
 typedef struct programmer_s {
 	/* Info */
 	const char *name;
@@ -15,7 +30,7 @@ typedef struct programmer_s {
 	void (*close) (struct programmer_s *pgm);
 	void (*reset) (struct programmer_s *pgm);
 	int (*read_range) (struct programmer_s *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length);
-	int (*write_range) (struct programmer_s *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length);
+	int (*write_range) (struct programmer_s *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length, const memtype_t memtype);
 
 	/* Private */
 	libusb_device_handle *dev_handle;

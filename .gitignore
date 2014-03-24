@@ -1,0 +1,6 @@
+.*.swp
+*.o
+*.bin
+*.ihx
+*.hex
+tags
