@@ -12,6 +12,14 @@
 #include "stlinkv2.h"
 #include "stm8.h"
 
+#ifdef __APPLE__
+extern char *optarg;
+extern int optind;
+extern int optopt;
+extern int opterr;
+extern int optreset;
+#endif
+
 programmer_t pgms[] = {
 	{ 	"stlink",
 		0x0483, // USB vid
