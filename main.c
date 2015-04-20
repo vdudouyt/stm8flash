@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -11,6 +12,7 @@
 #include "stlink.h"
 #include "stlinkv2.h"
 #include "stm8.h"
+#include "ihex.h"
 
 #ifdef __APPLE__
 extern char *optarg;
@@ -248,7 +250,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
 		fflush(stderr);
         int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
-		char *buf = malloc(bytes_count_align);
+		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
         if(recv < bytes_count_align) {
@@ -266,7 +268,7 @@ int main(int argc, char **argv) {
 		fflush(stderr);
 
         int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
-		char *buf = malloc(bytes_count_align);
+		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
         if(recv < bytes_count_align) {
@@ -276,7 +278,7 @@ int main(int argc, char **argv) {
 
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
-		char *buf2 = malloc(bytes_count);
+		unsigned char *buf2 = malloc(bytes_count);
 		if(!buf2) spawn_error("malloc failed");
 		int bytes_to_verify;
 		/* reading bytes to RAM */
@@ -306,7 +308,7 @@ int main(int argc, char **argv) {
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
         int bytes_count_align = ((bytes_count-1)/part->flash_block_size+1)*part->flash_block_size;
-		char *buf = malloc(bytes_count_align);
+		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
         memset(buf, 0, bytes_count_align); // Clean aligned buffer
 		int bytes_to_write;

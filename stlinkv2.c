@@ -6,21 +6,24 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 #include "stlink.h"
 #include "error.h"
 #include "try.h"
 #include "byte_utils.h"
 #include "stlinkv2.h"
 
+unsigned char *pack_int16(uint16_t word, unsigned char *out);
+
 #define STLK_READ_BUFFER_SIZE 6144
 
-char cmd_buf[16];
+unsigned char cmd_buf[16];
 
 unsigned int stlink2_get_status(programmer_t *pgm);
 int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
 int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
 
-static unsigned int msg_transfer(programmer_t *pgm, char *buf, unsigned int length, int direction) {
+static unsigned int msg_transfer(programmer_t *pgm, unsigned char *buf, unsigned int length, int direction) {
 	int bytes_transferred;
 	int ep = (direction == LIBUSB_ENDPOINT_OUT) ? 2 : 1;
 	libusb_bulk_transfer(pgm->dev_handle, ep | direction, buf, length, &bytes_transferred, 0);
@@ -28,21 +31,21 @@ static unsigned int msg_transfer(programmer_t *pgm, char *buf, unsigned int leng
 	return bytes_transferred;
 }
 
-static unsigned int msg_send(programmer_t *pgm, char *buf, unsigned int length) {
+static unsigned int msg_send(programmer_t *pgm, unsigned char *buf, unsigned int length) {
 	return msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_OUT);
 }
 
-static unsigned int msg_recv(programmer_t *pgm, char *buf, unsigned int length) {
+static unsigned int msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int length) {
 	return msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_IN);
 }
 
 static void msg_recv0(programmer_t *pgm, unsigned int length) {
-	char buf[64];
+	unsigned char buf[64];
 	msg_recv(pgm, buf, length);
 }
 
 static unsigned int msg_recv_int(programmer_t *pgm, unsigned int length) {
-	char buf[4];
+	unsigned char buf[4];
 	msg_recv(pgm, buf, length);
 	return load_int(buf, length, MP_LITTLE_ENDIAN);
 }
@@ -51,7 +54,7 @@ static unsigned int msg_recv_int8(programmer_t *pgm) {	return msg_recv_int(pgm, 
 static unsigned int msg_recv_int16(programmer_t *pgm) {	return msg_recv_int(pgm, 2); }
 static unsigned int msg_recv_int32(programmer_t *pgm) {	return msg_recv_int(pgm, 4); }
 
-static void msg_init(char *out, unsigned int cmd) {
+static void msg_init(unsigned char *out, unsigned int cmd) {
 	memset(out, 0, 16);
 	format_int(out, cmd, 2, MP_BIG_ENDIAN);
 }
@@ -131,7 +134,7 @@ void stlink2_finish_session(programmer_t *pgm) {
 }
 
 int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	char buf[4], start2[2];
+	unsigned char buf[4], start2[2];
 	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40a, 7,
 			0x00, 0x01,
@@ -143,7 +146,7 @@ int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start
 }
 
 int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
-	char buf[4], start2[2];
+	unsigned char buf[4], start2[2];
 	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40a, 8,
 			0x00, 0x02,
@@ -155,7 +158,7 @@ int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start)
 }
 
 int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	char buf[4], start2[2];
+	unsigned char buf[4], start2[2];
 	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40b, 7,
 			0x00, 0x01,
@@ -174,7 +177,7 @@ unsigned int stlink2_get_status(programmer_t *pgm) {
 	return msg_recv_int32(pgm);
 }
 
-int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
+int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
 	stlink2_init_session(pgm);
 
 	int i;
@@ -205,7 +208,7 @@ void stlink2_wait_until_transfer_completes(programmer_t *pgm, stm8_device_t *dev
 	TRY(8, stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR) & 0x4);
 }
 
-int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
+int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	stlink2_init_session(pgm);
 
 	stlink2_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);

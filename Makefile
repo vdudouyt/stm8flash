@@ -1,6 +1,6 @@
 .PHONY: all clean
 OBJECTS=stlink.o stlinkv2.o main.o byte_utils.o ihex.o stm8.o
-CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0
+CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0 --std=gnu99 --pedantic
 PLATFORM=$(shell uname -s)
 ifeq ($(PLATFORM),Darwin)
   CFLAGS += -I/usr/include/sys -I/usr/include/machine

@@ -9,13 +9,14 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <endian.h>
+#include <unistd.h>
 #include "stm8.h"
 #include "pgm.h"
 #include "stlink.h"
 #include "utils.h"
 
-#define STLK_FLAG_ERR 0b00000001
-#define STLK_FLAG_BUFFER_FULL 0b00000100
+#define STLK_FLAG_ERR 0x01
+#define STLK_FLAG_BUFFER_FULL 0x04
 #define STLK_READ_BUFFER_SIZE 6144
 #define STLK_MAX_WRITE 512
 
@@ -25,7 +26,7 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 
 void stlink_send_message(programmer_t *pgm, int count, ...) {
 	va_list ap;
-	char data[32];
+	unsigned char data[32];
 	int i, r, actual;
 
 	va_start(ap, count);
@@ -40,7 +41,7 @@ void stlink_send_message(programmer_t *pgm, int count, ...) {
 	return;
 }
 
-int stlink_read(programmer_t *pgm, char *buffer, int count) {
+int stlink_read(programmer_t *pgm, unsigned char *buffer, int count) {
 	int r, recv;
 	r = libusb_bulk_transfer(pgm->dev_handle, (1 | LIBUSB_ENDPOINT_IN), buffer, count, &recv, 0);
 	assert(r==0);
@@ -48,13 +49,13 @@ int stlink_read(programmer_t *pgm, char *buffer, int count) {
 }
 
 int stlink_read1(programmer_t *pgm, int count) {
-	char buf[16];
+	unsigned char buf[16];
 	return(stlink_read(pgm, buf, count));
 }
 
 int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	va_list ap;
-	char buf[16];
+	unsigned char buf[16];
 	int recv = stlink_read(pgm, buf, count);
 	int i, ret = 0;
 	va_start(ap, count);
@@ -65,28 +66,28 @@ int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	return(ret);
 }
 
-char *pack_int16(uint16_t word, char *out) {
+unsigned char *pack_int16(uint16_t word, unsigned char *out) {
 	// Filling with bytes in big-endian order
 	out[0] = (word & 0xff00) >> 8;
 	out[1] = (word & 0x00ff);
 	return(out+2);
 }
 
-uint16_t unpack_int16_le(char *block) {
+uint16_t unpack_int16_le(unsigned char *block) {
 	uint32_t ret;
 	ret = *(block + 1) << 8;
 	ret += *(block + 0);
 	return(ret);
 }
 
-uint16_t unpack_int16(char *block) {
+uint16_t unpack_int16(unsigned char *block) {
 	uint32_t ret;
 	ret = *(block + 0) << 8;
 	ret += *(block + 1);
 	return(ret);
 }
 
-char *pack_int32(uint32_t word, char *out) {
+unsigned char *pack_int32(uint32_t word, unsigned char *out) {
 	out[0] = (word & 0xff000000) >> 24;
 	out[1] = (word & 0x00ff0000) >> 16;
 	out[2] = (word & 0x0000ff00) >> 8;
@@ -94,7 +95,7 @@ char *pack_int32(uint32_t word, char *out) {
 	return(out+4);
 }
 
-char *pack_int32_le(uint32_t word, char *out) {
+unsigned char *pack_int32_le(uint32_t word, unsigned char *out) {
 	// Filling with bytes in little-endian order
 	out[0] = (word & 0x000000ff);
 	out[1] = (word & 0x0000ff00) >> 8;
@@ -103,7 +104,7 @@ char *pack_int32_le(uint32_t word, char *out) {
 	return(out+4);
 }
 
-uint32_t unpack_int32(char *block) {
+uint32_t unpack_int32(unsigned char *block) {
 	uint32_t ret;
 	ret  = *(block + 0) << 24;
 	ret += *(block + 1) << 16;
@@ -112,7 +113,7 @@ uint32_t unpack_int32(char *block) {
 	return(ret);
 }
 
-uint32_t unpack_int32_le(char *block) {
+uint32_t unpack_int32_le(unsigned char *block) {
 	uint32_t ret;
 	ret  = *(block + 3) << 24;
 	ret += *(block + 2) << 16;
@@ -121,8 +122,8 @@ uint32_t unpack_int32_le(char *block) {
 	return(ret);
 }
 
-void pack_usb_cbw(scsi_usb_cbw *cbw, char *out) {
-	char *offset = out;
+void pack_usb_cbw(scsi_usb_cbw *cbw, unsigned char *out) {
+	unsigned char *offset = out;
 	offset = pack_int32(cbw->signature, offset);
 	offset = pack_int32(cbw->tag, offset);
 	offset = pack_int32_le(cbw->transfer_length, offset);
@@ -135,7 +136,7 @@ void pack_usb_cbw(scsi_usb_cbw *cbw, char *out) {
 	assert(offset - out == USB_CBW_SIZE);
 }
 
-void unpack_usb_csw(char *block, scsi_usb_csw *out) {
+void unpack_usb_csw(unsigned char *block, scsi_usb_csw *out) {
 	out->signature = unpack_int32(block);
 	out->tag = unpack_int32(block + 4);
 	out->data_residue = unpack_int32_le(block + 8);
@@ -304,7 +305,7 @@ void stlink_finish_session(programmer_t *pgm) {
 }
 
 unsigned int stlink_swim_get_status(programmer_t *pgm) {
-	char buf[4];
+	unsigned char buf[4];
 	stlink_cmd(pgm, 4, buf, 0x80, 0x0a,
 			0xf4, 0x09,
 			0x01, 0x00,
@@ -315,7 +316,7 @@ unsigned int stlink_swim_get_status(programmer_t *pgm) {
 }
 
 bool stlink_open(programmer_t *pgm) {
-	char buf[18];
+	unsigned char buf[18];
 	pgm->out_msg_size = 31;
 	stlink_test_unit_ready(pgm);
 	stlink_cmd(pgm, 0x06, buf, 0x80, 6, 0xf1, 0x80, 0x00, 0x00, 0x00, 0x00);
@@ -357,7 +358,7 @@ void stlink_swim_srst(programmer_t *pgm) {
 }
 
 int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	char buf[4], start2[2];
+	unsigned char buf[4], start2[2];
 	int result, tries = 0;
 	pack_int16(start, start2);
 	DEBUG_PRINT("stlink_swim_write_byte\n");
@@ -390,14 +391,14 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 	return(result);
 }
 
-int stlink_swim_read_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length) {
-	char buf[4];
+int stlink_swim_read_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
+	unsigned char buf[4];
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR); // mov 0x00, CLK_DIVR
 	int i;
 	for(i = 0; i < length; i += STLK_READ_BUFFER_SIZE) {
-		char block_start2[2], block_size2[2];
+		unsigned char block_start2[2], block_size2[2];
 		int block_start = start + i;
 		// Determining block size
 		int block_size = length - i;
@@ -440,7 +441,7 @@ int stlink_swim_wait(programmer_t *pgm) {
 	return(result);
 }
 
-int stlink_swim_write_block(programmer_t *pgm, char *buffer,
+int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 			unsigned int start,
 			unsigned int length,
 			unsigned int padding
@@ -448,7 +449,7 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	int length1 = 8 - padding; // Amount to be transferred with CBW
 	int length2 = length - 8 + padding; // Amount to be transferred with additional transfer
 	if (length2 < 0) length2 = 0;
-	char block_size2[2], block_start2[2];
+	unsigned char block_size2[2], block_start2[2];
 	pack_int16(start, block_start2);
 	pack_int16(length, block_size2);
 	// Some logical checks
@@ -473,7 +474,7 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	usleep(3000);
 	if(length2) {
 		// Sending the rest
-		char tail[STLK_MAX_WRITE-6];
+		unsigned char tail[STLK_MAX_WRITE-6];
 		memcpy(tail, buffer + length1, length2);
 		if(padding) tail[length2] = '\1';
 		int actual;
@@ -495,7 +496,7 @@ int stlink_swim_write_block(programmer_t *pgm, char *buffer,
 	return(result);
 }
 
-int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
+int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	int i;
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
@@ -515,7 +516,7 @@ int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, char *buff
     }
     int flash_block_size = device->flash_block_size;
 	for(i = 0; i < length; i+=flash_block_size) {
-		char block[128];
+		unsigned char block[128];
 		memset(block, 0, sizeof(block));
 		int block_size = length - i;
 		if(block_size > flash_block_size)
