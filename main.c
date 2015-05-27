@@ -97,6 +97,12 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 		int r = libusb_detach_kernel_driver(pgm->dev_handle, 0);
 		assert(r == 0);
 	}
+
+#ifdef __APPLE__
+	r = libusb_claim_interface(pgm->dev_handle, 0);
+	assert(r == 0);
+#endif
+
 	return(true);
 }
 
