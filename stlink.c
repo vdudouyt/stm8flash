@@ -2,6 +2,7 @@
    (c) Valentin Dudouyt, 2012-2013 */
 
 #include <stdio.h>
+#include <stddef.h>
 #include <libusb.h>
 #include <malloc.h>
 #include <assert.h>
@@ -222,6 +223,7 @@ int stlink_cmd_swim_read(programmer_t *pgm, uint16_t length, uint16_t start) {
 	cbw.cb[1] = 0x0c;
 	pack_int16(length, cbw.cb+2);
 	pack_int16(start, cbw.cb+6);
+	return 0;
 }
 
 void stlink_init_session(programmer_t *pgm) {
@@ -243,7 +245,7 @@ void stlink_init_session(programmer_t *pgm) {
 	}
 	do {
 		usleep(10000);
-	} while(stlink_swim_get_status(pgm) & 1 != 0);
+	} while ((stlink_swim_get_status(pgm) & 1) != 0);
 	stlink_cmd(pgm, 0, NULL, 0x00, 0x03,
 			0xf4, 0x03,
 			0x00, 0x00,
