@@ -42,7 +42,7 @@ stm8_device_t stm8_devices[] = {
 	  .flash_size = 8*1024,
       .flash_block_size = 64,
 	  REGS_STM8S
-	 },
+	},
 	{
 	  .name = "stm8s105",
 	  .ram_start = 0x0000,
@@ -53,7 +53,7 @@ stm8_device_t stm8_devices[] = {
 	  .flash_size = 16*1024,
       .flash_block_size = 128,
 	  REGS_STM8S
-	 },
+	},
 	{
 	  .name = "stm8s208",
 	  .ram_start = 0x0000,
@@ -64,7 +64,7 @@ stm8_device_t stm8_devices[] = {
 	  .flash_size = 32*1024,
       .flash_block_size = 128,
 	  REGS_STM8S
-	 },
+	},
 	{
 	  .name = "stm8l150",
 	  .ram_start = 0x0000,
@@ -75,6 +75,17 @@ stm8_device_t stm8_devices[] = {
 	  .flash_size = 32*1024,
       .flash_block_size = 128,
 	  REGS_STM8L
-	 },
+	},
+	{
+		.name = "stm8l051f3",
+		.ram_start = 0x0000,
+		.ram_size = 1*1024,
+		.eeprom_start = 0x1000,
+		.eeprom_size = 256,
+		.flash_start = 0x8000,
+		.flash_size = 8*1024,
+		.flash_block_size = 64,
+		REGS_STM8L
+	},
 	{ NULL },
 };
