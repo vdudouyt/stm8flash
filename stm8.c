@@ -33,6 +33,17 @@ stm8_device_t stm8_devices[] = {
 	  REGS_STM8S
 	},
 	{
+	  .name = "stm8s005k6",
+	  .ram_start = 0x0000,
+	  .ram_size = 2*1024,
+	  .eeprom_start = 0x4000,
+	  .eeprom_size = 128,
+	  .flash_start = 0x8000,
+	  .flash_size = 32*1024,
+	  .flash_block_size = 128,
+	  REGS_STM8S
+	},
+	{
 	  .name = "stm8s103",
 	  .ram_start = 0x0000,
 	  .ram_size = 1*1024,
