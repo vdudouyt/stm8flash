@@ -235,7 +235,7 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned 
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
         if(memtype == FLASH || memtype == EEPROM) {
             // block programming mode
-            stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01, FLASH_CR2; 0x817e - enable write OPT bytes
+            stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
             if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
                 stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
             }
