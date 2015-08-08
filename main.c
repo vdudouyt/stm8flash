@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
 				break;
 			case OPT:
                 start = 0x4800;
-                if(!bytes_count_specified || bytes_count > part->flash_size) {
+                if(!bytes_count_specified || bytes_count > 0x80) {
                     bytes_count = 0x80;
                 }
                 break;
