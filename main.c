@@ -194,6 +194,9 @@ int main(int argc, char **argv) {
 
     // Try define memory type by address
 	if(memtype == UNKNOWN) {
+        if((start >= 0x4800) && (start < 0x4880)) {
+            memtype = OPT;
+        }
         if((start >= part->ram_start) && (start < part->ram_start + part->ram_size)) {
             memtype = RAM;
         }
@@ -236,6 +239,12 @@ int main(int argc, char **argv) {
                 }
                 fprintf(stderr, "Determine FLASH area\r\n");
 				break;
+			case OPT:
+                start = 0x4800;
+                if(!bytes_count_specified || bytes_count > part->flash_size) {
+                    bytes_count = 0x80;
+                }
+                break;
 		}
 		start_addr_specified = true;
 	}
