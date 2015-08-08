@@ -241,8 +241,9 @@ int main(int argc, char **argv) {
 				break;
 			case OPT:
                 start = 0x4800;
-                if(!bytes_count_specified || bytes_count > 0x80) {
-                    bytes_count = 0x80;
+                size_t opt_size = (part->flash_size == 8*1024 ? 0x40 : 0x80);
+                if(!bytes_count_specified || bytes_count > opt_size) {
+                    bytes_count = opt_size;
                 }
                 break;
 		}
