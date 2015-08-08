@@ -245,6 +245,7 @@ int main(int argc, char **argv) {
                 if(!bytes_count_specified || bytes_count > opt_size) {
                     bytes_count = opt_size;
                 }
+                fprintf(stderr, "Determine OPT area\r\n");
                 break;
 		}
 		start_addr_specified = true;
