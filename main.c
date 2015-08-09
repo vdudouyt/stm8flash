@@ -240,7 +240,9 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Determine FLASH area\r\n");
 				break;
 			case OPT:
-                start = 0x4800;
+                if(!start_addr_specified) {
+                    start = 0x4800;
+                }
                 size_t opt_size = (part->flash_size == 8*1024 ? 0x40 : 0x80);
                 if(!bytes_count_specified || bytes_count > opt_size) {
                     bytes_count = opt_size;
