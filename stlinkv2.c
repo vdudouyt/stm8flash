@@ -216,6 +216,7 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned 
         stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
     }
 
+    // Unlock MASS
     if(memtype == FLASH) {
         stlink2_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
         stlink2_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
@@ -232,27 +233,42 @@ int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned 
 	int i;
 	int BLOCK_SIZE = device->flash_block_size;
 	for(i = 0; i < length; i+=BLOCK_SIZE) {
-        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
-            // stlink2_write_word(pgm, 0x01fe, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2
+        if(memtype == FLASH || memtype == EEPROM) {
+            // block programming mode
             stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
             if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
                 stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
             }
+        } else if (memtype == OPT){
+            // option programming mode
+            stlink2_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
+            if(device->regs.FLASH_NCR2 != 0) {
+                stlink2_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
+            }
         }
 
-		// The first 8 packet bytes are getting transmitted
-		// with the same USB bulk transfer as the command itself
-		msg_init(cmd_buf, 0xf40a);
-		format_int(&(cmd_buf[2]), BLOCK_SIZE, 2, MP_BIG_ENDIAN);
-		format_int(&(cmd_buf[6]), start + i, 2, MP_BIG_ENDIAN);
-		memcpy(&(cmd_buf[8]), &(buffer[i]), 8);
-		msg_send(pgm, cmd_buf, sizeof(cmd_buf));
+        if(memtype == OPT){
+            int j;
+            for(j = 0; j < length; j++){
+                stlink2_write_byte(pgm, buffer[j], start+j);
+                TRY(8, HI(stlink2_get_status(pgm)) == 1);
+            }
+        } else {
+            // page-based writing
+            // The first 8 packet bytes are getting transmitted
+            // with the same USB bulk transfer as the command itself
+            msg_init(cmd_buf, 0xf40a);
+            format_int(&(cmd_buf[2]), BLOCK_SIZE, 2, MP_BIG_ENDIAN);
+            format_int(&(cmd_buf[6]), start + i, 2, MP_BIG_ENDIAN);
+            memcpy(&(cmd_buf[8]), &(buffer[i]), 8);
+            msg_send(pgm, cmd_buf, sizeof(cmd_buf));
 
-		// Transmitting the rest
-		msg_send(pgm, &(buffer[i + 8]), BLOCK_SIZE - 8);
+            // Transmitting the rest
+            msg_send(pgm, &(buffer[i + 8]), BLOCK_SIZE - 8);
 
-		// Waiting for the transfer to process
-		TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
+            // Waiting for the transfer to process
+            TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
+        }
 
         if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
             stlink2_wait_until_transfer_completes(pgm, device);
