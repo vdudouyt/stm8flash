@@ -43,6 +43,7 @@ Support table
 | stm8s208 |  ?    |  ?     |  no  |  ?     |  ?      |  no   |
 | stm8l150 |  ok   |  FAIL  |  no  |  ok    |  ok     |  no   |
 |stm8l051f3|  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
+|stm8s005k6|  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 
 Legend:
 
