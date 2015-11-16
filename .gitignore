@@ -3,4 +3,5 @@
 *.bin
 *.ihx
 *.hex
+*.exe
 tags
