@@ -47,6 +47,16 @@ programmer_t pgms[] = {
 
 void print_help_and_exit(const char *name) {
 	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "\t-?             Display this help\n");
+	fprintf(stderr, "\t-c programmer  Specify programmer used (stlink or stlinkv2)\n");
+	fprintf(stderr, "\t-p partno      Specify STM8 device\n");
+	fprintf(stderr, "\t-l             List supported STM8 devices\n");
+	fprintf(stderr, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
+	fprintf(stderr, "\t-b bytes       Specify number of bytes\n");
+	fprintf(stderr, "\t-r <filename>  Read data from device to file\n");
+	fprintf(stderr, "\t-w <filename>  Write data from file to device\n");
+	fprintf(stderr, "\t-v <filename>  Verify data in device against file\n");
 	exit(-1);
 }
 
@@ -121,7 +131,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:")) != -1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != -1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -137,6 +147,11 @@ int main(int argc, char **argv) {
 						part = &stm8_devices[i];
 				}
 				break;
+			case 'l':
+				for(i = 0; stm8_devices[i].name; i++)
+					printf("%s ", stm8_devices[i].name);
+				printf("\n");
+				exit(0);
 			case 'r':
 				action = READ;
 				strcpy(filename, optarg);
