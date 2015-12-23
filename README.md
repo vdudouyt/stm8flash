@@ -47,6 +47,7 @@ Support table
 | stm8l152?4 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?6 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8l152?8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stlux???a  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s003?3 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8s005?6 |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
