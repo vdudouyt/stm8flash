@@ -72,13 +72,6 @@ void dump_pgms(programmer_t *pgms) {
 		fprintf(stderr, "%s\n", pgms[i].name);
 }
 
-void dump_devices(stm8_device_t *devices) {
-	// Dump parts list in stderr
-	int i;
-	for(i = 0; devices[i].name; i++)
-		fprintf(stderr, "%s\n", devices[i].name);
-}
-
 bool is_ext(const char *filename, const char *ext) {
 	char *ext_begin = strrchr(filename, '.');
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
@@ -210,8 +203,7 @@ int main(int argc, char **argv) {
 	if(!pgm)
 		spawn_error("No programmer has been specified");
 	if(part_specified && !part) {
-		fprintf(stderr, "No valid part specified. Possible values are:\n");
-		dump_devices( (stm8_device_t *) &stm8_devices);
+		fprintf(stderr, "No valid part specified. Use -l to see the list of supported devices.\n");
 		exit(-1);
 	}
 	if(!part)

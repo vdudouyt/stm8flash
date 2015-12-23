@@ -38,7 +38,13 @@ Support table
 | MCU        | flash | eeprom | opt  | flash2 | eeprom2 | opt2  |
 |------------|-------|--------|------|--------|---------|-------|
 | stm8l051f3 |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8l150   |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
+| stm8l052c6 |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l052r8 |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l101f1 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l101?2 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l152?4 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l152?6 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
+| stm8l152?8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s003?3 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8s005?6 |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
