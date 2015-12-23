@@ -25,6 +25,6 @@ typedef struct stm8_device {
 	stm8_regs_t regs;
 } stm8_device_t;
 
-extern stm8_device_t stm8_devices[];
+extern const stm8_device_t stm8_devices[];
 
 #endif

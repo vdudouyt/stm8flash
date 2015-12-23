@@ -177,7 +177,7 @@ unsigned int stlink2_get_status(programmer_t *pgm) {
 	return msg_recv_int32(pgm);
 }
 
-int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
+int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
 	stlink2_init_session(pgm);
 
 	int i;
@@ -204,11 +204,11 @@ int stlink2_swim_read_range(programmer_t *pgm, stm8_device_t *device, unsigned c
 	return(length);
 }
 
-void stlink2_wait_until_transfer_completes(programmer_t *pgm, stm8_device_t *device) {
+void stlink2_wait_until_transfer_completes(programmer_t *pgm, const stm8_device_t *device) {
 	TRY(8, stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR) & 0x4);
 }
 
-int stlink2_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
+int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	stlink2_init_session(pgm);
 
 	stlink2_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);

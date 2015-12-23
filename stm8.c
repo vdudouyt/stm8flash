@@ -20,7 +20,7 @@
         .FLASH_NCR2 = 0x0000,   \
 }
 
-stm8_device_t stm8_devices[] = {
+const stm8_device_t stm8_devices[] = {
     {
         .name = "stm8l051f3",
         .ram_start = 0x0000,

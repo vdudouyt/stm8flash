@@ -116,7 +116,7 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	return(true);
 }
 
-stm8_device_t *get_part(const char *name)
+const stm8_device_t *get_part(const char *name)
 {
 	for(unsigned int i = 0; stm8_devices[i].name; i++)
 	{
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 	memtype_t memtype = FLASH;
 	int i;
 	programmer_t *pgm = NULL;
-	stm8_device_t *part = NULL;
+	const stm8_device_t *part = NULL;
 	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != -1) {
 		switch(c) {
 			case 'c':
