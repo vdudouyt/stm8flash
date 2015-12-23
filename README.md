@@ -37,6 +37,7 @@ Support table
 
 | MCU        | flash | eeprom | opt  | flash2 | eeprom2 | opt2  |
 |------------|-------|--------|------|--------|---------|-------|
+| stlux???a  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8af528? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al3l6? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l051f3 |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -47,7 +48,6 @@ Support table
 | stm8l152?4 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?6 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8l152?8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stlux???a  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s003?3 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8s005?6 |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -71,6 +71,7 @@ Support table
 | stm8s208?b |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s903?3 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8splnb1 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stnrg???a  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 
 Legend:
 
