@@ -22,6 +22,28 @@
 
 const stm8_device_t stm8_devices[] = {
     {
+        .name = "stm8al3l6?",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8af528?",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
         .name = "stm8l051f3",
         .ram_start = 0x0000,
         .ram_size = 1*1024,
