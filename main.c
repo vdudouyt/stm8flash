@@ -116,6 +116,19 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	return(true);
 }
 
+stm8_device_t *get_part(const char *name)
+{
+	for(unsigned int i = 0; stm8_devices[i].name; i++)
+	{
+		const char *e = stm8_devices[i].name;
+		const char *s = name;
+		for(e = stm8_devices[i].name, s = name; *s && (*e == *s || *e == '?'); e++, s++);
+		if(!*e)
+			return(&stm8_devices[i]);
+	}
+	return(0);
+}
+
 int main(int argc, char **argv) {
 	int start, bytes_count = 0;
 	char filename[256];
@@ -142,10 +155,7 @@ int main(int argc, char **argv) {
 				break;
 			case 'p':
 				part_specified = true;
-				for(i = 0; stm8_devices[i].name; i++) {
-					if(!strcmp(optarg, stm8_devices[i].name))
-						part = &stm8_devices[i];
-				}
+				part = get_part(optarg);
 				break;
 			case 'l':
 				for(i = 0; stm8_devices[i].name; i++)
