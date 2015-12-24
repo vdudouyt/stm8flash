@@ -13,7 +13,7 @@ Synopsis
 stm8flash -c <stlink|stlinkv2> -p <partname> [-s flash|eeprom|0x8000] [-r|-w|-v] <filename>
 ```
 
-Flash samples:
+Flash examples:
 ```nohighlight
 ./stm8flash -c stlink -p stm8s003f3 -w blinky.bin
 ./stm8flash -c stlink -p stm8s003f3 -w blinky.ihx
@@ -22,7 +22,7 @@ Flash samples:
 ./stm8flash -c stlinkv2 -p stm8l150 -w blinky.bin
 ```
 
-EEPROM samples:
+EEPROM examples:
 ```nohighlight
 ./stm8flash -c stlinkv2 -p stm8s003f3 -s eeprom -r ee.bin
 ./stm8flash -c stlinkv2 -p stm8s003f3 -s eeprom -w ee.bin
@@ -54,7 +54,7 @@ Support table
 | stm8s103f2 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s103?3 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s105?4 |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
-| stm8s105?6 |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
+| stm8s105?6 |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s207c8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207cb |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207k8 |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -76,7 +76,7 @@ Support table
 Legend:
 
   * `ok`   - Fully supported.
-  * `no`   - Not supported now.
+  * `no`   - Not supported.
   * `?`    - Not tested.
   * `FÁIL` - Not working. Needs fix.
 
