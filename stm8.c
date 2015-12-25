@@ -33,6 +33,17 @@ const stm8_device_t stm8_devices[] = {
         REGS_STM8S
     },
     {
+        .name = "stm8af526?",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
         .name = "stm8af528?",
         .ram_start = 0x0000,
         .ram_size = 6*1024,
@@ -40,6 +51,127 @@ const stm8_device_t stm8_devices[] = {
         .eeprom_size = 2048,
         .flash_start = 0x8000,
         .flash_size = 64*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af52a?",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 128*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6213",
+        .ram_start = 0x0000,
+        .ram_size = 1*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 640,
+        .flash_start = 0x8000,
+        .flash_size = 4*1024,
+        .flash_block_size = 64,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6223",
+        .ram_start = 0x0000,
+        .ram_size = 1*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 640,
+        .flash_start = 0x8000,
+        .flash_size = 8*1024,
+        .flash_block_size = 64,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6223a",
+        .ram_start = 0x0000,
+        .ram_size = 1*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 640,
+        .flash_start = 0x8000,
+        .flash_size = 8*1024,
+        .flash_block_size = 64,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6226",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 640,
+        .flash_start = 0x8000,
+        .flash_size = 8*1024,
+        .flash_block_size = 64,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af624?",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 512,
+        .flash_start = 0x8000,
+        .flash_size = 16*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6266",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6268",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af6269",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af628?",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        REGS_STM8S
+    },
+    {
+        .name = "stm8af62a?",
+        .ram_start = 0x0000,
+        .ram_size = 6*1024,
+        .eeprom_start = 0x4000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 128*1024,
         .flash_block_size = 128,
         REGS_STM8S
     },
