@@ -286,6 +286,61 @@ const stm8_device_t stm8_devices[] = {
         REGS_STM8L
     },
     {
+        .name = "stm8l151?2",
+        .ram_start = 0x0000,
+        .ram_size = 1*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 256,
+        .flash_start = 0x8000,
+        .flash_size = 4*1024,
+        .flash_block_size = 64,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8l151?3",
+        .ram_start = 0x0000,
+        .ram_size = 1*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 256,
+        .flash_start = 0x8000,
+        .flash_size = 8*1024,
+        .flash_block_size = 64,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8l151?4",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 16*1024,
+        .flash_block_size = 64,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8l151?6",
+        .ram_start = 0x0000,
+        .ram_size = 2*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 1024,
+        .flash_start = 0x8000,
+        .flash_size = 32*1024,
+        .flash_block_size = 128,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8l151?8",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        REGS_STM8L
+    },
+    {
         .name = "stm8l152?4",
         .ram_start = 0x0000,
         .ram_size = 2*1024,
@@ -293,7 +348,7 @@ const stm8_device_t stm8_devices[] = {
         .eeprom_size = 1024,
         .flash_start = 0x8000,
         .flash_size = 16*1024,
-        .flash_block_size = 128,
+        .flash_block_size = 64,
         REGS_STM8L
     },
     {
@@ -309,6 +364,17 @@ const stm8_device_t stm8_devices[] = {
     },
     {
         .name = "stm8l152?8",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2048,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8l162?8",
         .ram_start = 0x0000,
         .ram_size = 2*1024,
         .eeprom_start = 0x1000,
