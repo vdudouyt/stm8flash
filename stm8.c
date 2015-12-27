@@ -286,6 +286,17 @@ const stm8_device_t stm8_devices[] = {
         REGS_STM8L
     },
     {
+        .name = "stm8l101?3",
+        .ram_start = 0x0000,
+        .ram_size = 0x05FF,
+        .eeprom_start = 0x9FFF,
+        .eeprom_size = 0,
+        .flash_start = 0x8000,
+        .flash_size = 4*1024,
+        .flash_block_size = 64,
+        REGS_STM8L
+    },
+    {
         .name = "stm8l151?2",
         .ram_start = 0x0000,
         .ram_size = 1*1024,
