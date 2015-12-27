@@ -267,7 +267,7 @@ const stm8_device_t stm8_devices[] = {
         .name = "stm8l101f1",
         .ram_start = 0x0000,
         .ram_size = 0x05FF,
-        .eeprom_start = 0x9FFF,
+        .eeprom_start = 0x9FFF, // Overlapping flash and eeprom
         .eeprom_size = 0,
         .flash_start = 0x8000,
         .flash_size = 2*1024,
@@ -278,7 +278,7 @@ const stm8_device_t stm8_devices[] = {
         .name = "stm8l101?2",
         .ram_start = 0x0000,
         .ram_size = 0x05FF,
-        .eeprom_start = 0x9FFF,
+        .eeprom_start = 0x9FFF, // Overlapping flash and eeprom
         .eeprom_size = 0,
         .flash_start = 0x8000,
         .flash_size = 4*1024,
@@ -289,10 +289,10 @@ const stm8_device_t stm8_devices[] = {
         .name = "stm8l101?3",
         .ram_start = 0x0000,
         .ram_size = 0x05FF,
-        .eeprom_start = 0x9FFF,
+        .eeprom_start = 0x9FFF, // Overlapping flash and eeprom
         .eeprom_size = 0,
         .flash_start = 0x8000,
-        .flash_size = 4*1024,
+        .flash_size = 8*1024,
         .flash_block_size = 64,
         REGS_STM8L
     },
@@ -647,6 +647,17 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 128,
         REGS_STM8S
+    },
+    {
+        .name = "stm8tl5??4",
+        .ram_start = 0x0000,
+        .ram_size = 4096,
+        .eeprom_start = 0x9FFF, // Overlapping flash and eeprom
+        .eeprom_size = 0,
+        .flash_start = 0x8000,
+        .flash_size = 16*1024,
+        .flash_block_size = 64,
+        REGS_STM8L
     },
     {
         .name = "stnrg???a",
