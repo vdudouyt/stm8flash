@@ -45,19 +45,20 @@ programmer_t pgms[] = {
 	{ NULL },
 };
 
-void print_help_and_exit(const char *name) {
-	fprintf(stderr, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "\t-?             Display this help\n");
-	fprintf(stderr, "\t-c programmer  Specify programmer used (stlink or stlinkv2)\n");
-	fprintf(stderr, "\t-p partno      Specify STM8 device\n");
-	fprintf(stderr, "\t-l             List supported STM8 devices\n");
-	fprintf(stderr, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
-	fprintf(stderr, "\t-b bytes       Specify number of bytes\n");
-	fprintf(stderr, "\t-r <filename>  Read data from device to file\n");
-	fprintf(stderr, "\t-w <filename>  Write data from file to device\n");
-	fprintf(stderr, "\t-v <filename>  Verify data in device against file\n");
-	exit(-1);
+void print_help_and_exit(const char *name, bool err) {
+	FILE *stream = err ? stderr : stdout;
+	fprintf(stream, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	fprintf(stream, "Options:\n");
+	fprintf(stream, "\t-?             Display this help\n");
+	fprintf(stream, "\t-c programmer  Specify programmer used (stlink or stlinkv2)\n");
+	fprintf(stream, "\t-p partno      Specify STM8 device\n");
+	fprintf(stream, "\t-l             List supported STM8 devices\n");
+	fprintf(stream, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
+	fprintf(stream, "\t-b bytes       Specify number of bytes\n");
+	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
+	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
+	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
+	exit(-err);
 }
 
 void spawn_error(const char *msg) {
@@ -189,12 +190,14 @@ int main(int argc, char **argv) {
 				bytes_count = atoi(optarg);
                 bytes_count_specified = true;
 				break;
+			case '?':
+				print_help_and_exit(argv[0], false);
 			default:
-				print_help_and_exit(argv[0]);
+				print_help_and_exit(argv[0], true);
 		}
 	}
 	if(argc <= 1)
-		print_help_and_exit(argv[0]);
+		print_help_and_exit(argv[0], true);
 	if(pgm_specified && !pgm) {
 		fprintf(stderr, "No valid programmer specified. Possible values are:\n");
 		dump_pgms( (programmer_t *) &pgms);
@@ -276,7 +279,7 @@ int main(int argc, char **argv) {
 	if(!strlen(filename))
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))
-		print_help_and_exit(argv[0]);
+		print_help_and_exit(argv[0], true);
 	if(!usb_init(pgm, pgm->usb_vid, pgm->usb_pid))
 		spawn_error("Couldn't initialize stlink");
 	if(!pgm->open(pgm))
