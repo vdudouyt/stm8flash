@@ -393,7 +393,7 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 	return(result);
 }
 
-int stlink_swim_read_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
+int stlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
 	unsigned char buf[4];
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
@@ -498,7 +498,7 @@ int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 	return(result);
 }
 
-int stlink_swim_write_range(programmer_t *pgm, stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
+int stlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
 	int i;
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
