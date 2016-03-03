@@ -16,4 +16,5 @@ clean:
 	-rm -f $(OBJECTS) $(BIN)
 
 install:
+	mkdir -p $(DESTDIR)/usr/bin/
 	cp $(BIN) $(DESTDIR)/usr/bin/
