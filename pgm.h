@@ -1,7 +1,13 @@
 #ifndef __PGM_H
 #define __PGM_H
 
-#include <libusb.h>
+#ifndef WIN32
+ #include <endian.h>
+ #include <libusb.h>
+#else
+ #include <libusb-1.0/libusb.h>
+#endif
+
 #include "stm8.h"
 
 typedef enum {
