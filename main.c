@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != -1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
