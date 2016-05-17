@@ -3,18 +3,21 @@
 
 #include <stdio.h>
 #include <stddef.h>
-#include <libusb.h>
+
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
-#include <endian.h>
 #include <unistd.h>
 #include "stm8.h"
 #include "pgm.h"
 #include "stlink.h"
 #include "utils.h"
+
+#ifndef WIN32
+#include <endian.h>
+#endif
 
 #define STLK_FLAG_ERR 0x01
 #define STLK_FLAG_BUFFER_FULL 0x04
