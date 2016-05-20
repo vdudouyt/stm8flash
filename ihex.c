@@ -10,7 +10,7 @@
 
 char line[256];
 
-static unsigned char checksum(char *buf, unsigned int length, int chunk_len, int chunk_addr, int chunk_type) {
+static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk_len, int chunk_addr, int chunk_type) {
 	int sum = chunk_len + (LO(chunk_addr)) + (HI(chunk_addr)) + chunk_type;
 	int i;
 	for(i = 0; i < length; i++) {
@@ -61,4 +61,26 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	}
 
 	return(greatest_addr - start);
+}
+
+void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
+	unsigned int chunk_len, chunk_start, chunk_type, i, byte, line_no = 0, greatest_addr = 0;
+	chunk_start = start;
+	while(chunk_start < end)
+	{
+		chunk_len = end - chunk_start;
+		if (chunk_len > 32)
+		{
+			chunk_len = 32;
+		}
+		fprintf(pFile, ":%02X%04X00",chunk_len,chunk_start);
+		for(i = chunk_start - start; i < (chunk_start + chunk_len - start); i++)
+		{
+			fprintf(pFile, "%02X",buf[i]);
+		}
+		fprintf(pFile, "%02X\n", checksum( &buf[chunk_start - start], chunk_len, chunk_len, chunk_start, 0));
+
+		chunk_start += chunk_len;
+	}
+	fprintf(pFile,":00000001FF\n");
 }
