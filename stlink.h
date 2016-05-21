@@ -5,7 +5,6 @@
 #define __STLINK_H
 
 #include <stdio.h>
-#include <libusb.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "pgm.h"

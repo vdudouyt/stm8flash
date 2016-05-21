@@ -102,7 +102,7 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 		assert(r == 0);
 	}
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(WIN32)
 	r = libusb_claim_interface(pgm->dev_handle, 0);
 	assert(r == 0);
 #endif
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != -1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -298,7 +298,15 @@ int main(int argc, char **argv) {
         }
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		fwrite(buf, 1, bytes_count, f);
+		if(is_ext(filename, ".ihx")) 
+		{
+			fprintf(stderr, "Reading from Intel hex file ");
+			ihex_write(f, buf, start, start+bytes_count);
+		}
+		else
+		{
+			fwrite(buf, 1, bytes_count, f);
+		}
 		fclose(f);
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes received: %d\n", bytes_count);
