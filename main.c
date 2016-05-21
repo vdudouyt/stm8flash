@@ -305,7 +305,15 @@ int main(int argc, char **argv) {
         }
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		fwrite(buf, 1, bytes_count, f);
+		if(is_ext(filename, ".ihx")) 
+		{
+			fprintf(stderr, "Reading from Intel hex file ");
+			ihex_write(f, buf, start, start+bytes_count);
+		}
+		else
+		{
+			fwrite(buf, 1, bytes_count, f);
+		}
 		fclose(f);
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes received: %d\n", bytes_count);
