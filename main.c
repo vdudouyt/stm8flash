@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 				} else {
 					// Start addr is specified explicitely
 					memtype = UNKNOWN;
-					int success = sscanf(optarg, "%x", &start);
+					int success = sscanf(optarg, "%x", (unsigned*)&start);
 					assert(success);
                     start_addr_specified = true;
 				}
