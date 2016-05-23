@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
 	} else if (action == UNLOCK) {
 		int bytes_to_write=part->option_bytes_size;
 
-		if (part->read_out_protection_mode==ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device.");
+		if (part->read_out_protection_mode==ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
 
 		unsigned char *buf=malloc(bytes_to_write);
 		if(!buf) spawn_error("malloc failed");
