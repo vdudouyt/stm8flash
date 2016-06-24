@@ -634,7 +634,7 @@ const stm8_device_t stm8_devices[] = {
         .eeprom_size = 640,
         .flash_start = 0x8000,
         .flash_size = 8*1024,
-        .flash_block_size = 128,
+        .flash_block_size = 64,
         REGS_STM8S
     },
     {
