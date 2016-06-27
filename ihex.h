@@ -6,3 +6,4 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end);
 
 #endif
+

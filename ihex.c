@@ -84,3 +84,4 @@ void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned in
 	}
 	fprintf(pFile,":00000001FF\n");
 }
+
