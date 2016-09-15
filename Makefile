@@ -12,9 +12,9 @@ ifeq ($(PLATFORM),Linux)
 	LIBS = `pkg-config --libs libusb-1.0`
 	CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0 --std=gnu99 --pedantic
 else ifeq ($(PLATFORM),Darwin)
-	LIBS = `pkg-config --libs libusb-1.0`
-	CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0 --std=gnu99 --pedantic
-  	MacOSSDK=`xcrun --show-sdk-path`
+	LIBS = $(shell pkg-config --libs libusb-1.0)
+	CFLAGS = $(shell pkg-config --cflags libusb-1.0) -g -O0 --std=gnu99 --pedantic
+  	MacOSSDK=$(shell xcrun --show-sdk-path)
   	CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
 else 
 # 	Generic case is Windows
