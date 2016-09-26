@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
         }
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		if(is_ext(filename, ".ihx")) 
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex"))
 		{
 			fprintf(stderr, "Reading from Intel hex file ");
 			ihex_write(f, buf, start, start+bytes_count);
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
 		if(!buf2) spawn_error("malloc failed");
 		int bytes_to_verify;
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx")) {
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
 		} else {
 			fseek(f, 0L, SEEK_END);
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
 		int bytes_to_write;
 
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx")) {
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			fprintf(stderr, "Writing Intel hex file ");
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
 		} else {
