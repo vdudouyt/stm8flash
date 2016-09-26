@@ -15,6 +15,11 @@ else
 	BASE_CFLAGS := -g -O0
 endif
 
+# Pass LIBUSB_QUIET=anything to Make to silence debug output from libusb.
+ifneq (,$(strip $(LIBUSB_QUIET)))
+	BASE_CFLAGS += -DSTM8FLASH_LIBUSB_QUIET
+endif
+
 BASE_CFLAGS += --std=gnu99 --pedantic
 
 ifeq ($(PLATFORM),Linux)

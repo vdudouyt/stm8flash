@@ -87,7 +87,11 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	r = libusb_init(&ctx);
 	if(r < 0) return(false);
 
+#ifdef STM8FLASH_LIBUSB_QUIET
+	libusb_set_debug(ctx, 0);
+#else
 	libusb_set_debug(ctx, 3);
+#endif
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
