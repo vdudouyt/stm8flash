@@ -8,31 +8,52 @@
 
 PLATFORM=$(shell uname -s)
 
+# Pass RELEASE=anything to build without debug symbols
+ifneq (,$(strip $(RELEASE)))
+	BASE_CFLAGS := -O1
+else
+	BASE_CFLAGS := -g -O0
+endif
+
+# Pass LIBUSB_QUIET=anything to Make to silence debug output from libusb.
+ifneq (,$(strip $(LIBUSB_QUIET)))
+	BASE_CFLAGS += -DSTM8FLASH_LIBUSB_QUIET
+endif
+
+BASE_CFLAGS += --std=gnu99 --pedantic
+
 ifeq ($(PLATFORM),Linux)
 	LIBS = `pkg-config --libs libusb-1.0`
-	CFLAGS = `pkg-config --cflags libusb-1.0` -g -O0 --std=gnu99 --pedantic
+	LIBUSB_CFLAGS = `pkg-config --cflags libusb-1.0`
 else ifeq ($(PLATFORM),Darwin)
 	LIBS = $(shell pkg-config --libs libusb-1.0)
-	CFLAGS = $(shell pkg-config --cflags libusb-1.0) -g -O0 --std=gnu99 --pedantic
-  	MacOSSDK=$(shell xcrun --show-sdk-path)
-  	CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
-else 
+	LIBUSB_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
+	MacOSSDK=$(shell xcrun --show-sdk-path)
+	BASE_CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
+else
 # 	Generic case is Windows
 
 	LIBS   = -lusb-1.0
-	CFLAGS = -g -O0 --std=gnu99 --pedantic 
-	CC	   = GCC
+	LIBUSB_CFLAGS =
+	CC	   ?= GCC
 	BIN_SUFFIX =.exe
 endif
+
+# Respect user-supplied cflags, if any - just put ours in front.
+override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
+
 
 BIN 		=stm8flash
 OBJECTS 	=stlink.o stlinkv2.o main.o byte_utils.o ihex.o stm8.o
 
 
-.PHONY: all clean
+.PHONY: all clean install
 
-all: $(OBJECTS)
-	$(CC) $(OBJECTS) $(LIBS) -o $(BIN)
+$(BIN)$(BIN_SUFFIX): $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $(BIN)$(BIN_SUFFIX)
+
+all: $(BIN)$(BIN_SUFFIX)
+
 
 clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
