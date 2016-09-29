@@ -22,7 +22,8 @@ typedef enum {
     NONE = 0,
     READ,
     WRITE,
-    VERIFY
+    VERIFY,
+    UNLOCK
 } action_t;
 
 typedef struct programmer_s {
