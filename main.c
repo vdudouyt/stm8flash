@@ -58,6 +58,7 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
 	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
 	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
+	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
 }
 
@@ -87,13 +88,18 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	r = libusb_init(&ctx);
 	if(r < 0) return(false);
 
+#ifdef STM8FLASH_LIBUSB_QUIET
+	libusb_set_debug(ctx, 0);
+#else
 	libusb_set_debug(ctx, 3);
+#endif
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
 	pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, vid, pid);
 	pgm->ctx = ctx;
-	assert(pgm->dev_handle);
+	if (!pgm->dev_handle) spawn_error("Could not open USB device.");
+	// assert(pgm->dev_handle);
 
 	libusb_free_device_list(devs, 1); //free the list, unref the devices in it
 
@@ -138,7 +144,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:l")) != (char)-1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:lu")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -167,6 +173,12 @@ int main(int argc, char **argv) {
 			case 'v':
 				action = VERIFY;
 				strcpy(filename, optarg);
+				break;
+			case 'u':
+				action = UNLOCK;
+				start  = 0x4800;
+				memtype = OPT;
+				strcpy(filename, "Workaround");
 				break;
 			case 's':
                 // Start addr is depending on MCU type
@@ -276,7 +288,7 @@ int main(int argc, char **argv) {
 		spawn_error("No action has been specified");
 	if(!start_addr_specified)
 		spawn_error("No memtype or start_addr has been specified");
-	if(!strlen(filename))
+	if (!strlen(filename))
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))
 		print_help_and_exit(argv[0], true);
@@ -298,7 +310,7 @@ int main(int argc, char **argv) {
         }
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		if(is_ext(filename, ".ihx")) 
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex"))
 		{
 			fprintf(stderr, "Reading from Intel hex file ");
 			ihex_write(f, buf, start, start+bytes_count);
@@ -329,7 +341,7 @@ int main(int argc, char **argv) {
 		if(!buf2) spawn_error("malloc failed");
 		int bytes_to_verify;
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx")) {
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
 		} else {
 			fseek(f, 0L, SEEK_END);
@@ -361,7 +373,7 @@ int main(int argc, char **argv) {
 		int bytes_to_write;
 
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx")) {
+		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			fprintf(stderr, "Writing Intel hex file ");
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
 		} else {
@@ -387,6 +399,29 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes written: %d\n", sent);
 		fclose(f);
+	} else if (action == UNLOCK) {
+		int bytes_to_write=part->option_bytes_size;
+
+		if (part->read_out_protection_mode==ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
+
+		unsigned char *buf=malloc(bytes_to_write);
+		if(!buf) spawn_error("malloc failed");
+
+		if (part->read_out_protection_mode==ROP_STM8S_STD) {
+			for (int i=0; i<bytes_to_write;i++) {
+				buf[i]=0;
+				if ((i>0)&&((i&1)==0)) buf[i]=0xff;
+			}			
+		}
+
+		/* flashing MCU */
+		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write, memtype);
+		if(pgm->reset) {
+			// Restarting core (if applicable)
+			pgm->reset(pgm);
+		}
+		fprintf(stderr, "Unlocked device. Option bytes reset to default state.\n");
+		fprintf(stderr, "Bytes written: %d\n", sent);
 	}
 	return(0);
 }

@@ -13,6 +13,12 @@ typedef struct stm8_regs {
 	unsigned int FLASH_NCR2;
 } stm8_regs_t;
 
+
+typedef enum {
+    ROP_UNKNOWN,
+    ROP_STM8S_STD    // Disable ROP=0x00, option bytes are written inverted and noninverted
+} ROP_type_t;
+
 typedef struct stm8_device {
 	const char *name;
 	unsigned int ram_start;
@@ -22,6 +28,8 @@ typedef struct stm8_device {
 	unsigned int flash_start;
 	unsigned int flash_size;
     unsigned int flash_block_size;
+    unsigned int option_bytes_size;
+    ROP_type_t   read_out_protection_mode; 
 	stm8_regs_t regs;
 } stm8_device_t;
 
