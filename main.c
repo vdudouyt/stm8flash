@@ -13,6 +13,7 @@
 #include "stlinkv2.h"
 #include "stm8.h"
 #include "ihex.h"
+#include "srec.h"
 
 #ifdef __APPLE__
 extern char *optarg;
@@ -32,8 +33,8 @@ programmer_t pgms[] = {
 		stlink_swim_read_range,
 		stlink_swim_write_range,
 	},
-	{ 
-		"stlinkv2", 
+	{
+		"stlinkv2",
 		0x0483,
 		0x3748,
 		stlink2_open,
@@ -130,7 +131,8 @@ const stm8_device_t *get_part(const char *name)
 }
 
 int main(int argc, char **argv) {
-	int start, bytes_count = 0;
+	unsigned int start;
+	int bytes_count = 0;
 	char filename[256];
 	memset(filename, 0, sizeof(filename));
 	// Parsing command line
@@ -241,7 +243,7 @@ int main(int argc, char **argv) {
     }
 
 	if(memtype != UNKNOWN) {
-		// Selecting start addr depending on 
+		// Selecting start addr depending on
 		// specified part and memtype
 		switch(memtype) {
 			case RAM:
@@ -296,6 +298,8 @@ int main(int argc, char **argv) {
 		spawn_error("Couldn't initialize stlink");
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
+
+
 	FILE *f;
 	if(action == READ) {
 		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
@@ -314,6 +318,11 @@ int main(int argc, char **argv) {
 		{
 			fprintf(stderr, "Reading from Intel hex file ");
 			ihex_write(f, buf, start, start+bytes_count);
+		}
+		else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
+		{
+			fprintf(stderr, "Reading form Motorola S-record file ");
+			srec_write(f, buf, start, start+bytes_count);
 		}
 		else
 		{
@@ -347,9 +356,9 @@ int main(int argc, char **argv) {
 			fseek(f, 0L, SEEK_END);
 			bytes_to_verify = ftell(f);
             if(bytes_count_specified) {
-                bytes_to_verify = bytes_count; 
+                bytes_to_verify = bytes_count;
             } else if(bytes_count < bytes_to_verify) {
-                bytes_to_verify = bytes_count; 
+                bytes_to_verify = bytes_count;
             }
 			fseek(f, 0, SEEK_SET);
 			fread(buf2, 1, bytes_to_verify, f);
@@ -363,6 +372,8 @@ int main(int argc, char **argv) {
             fprintf(stderr, "FAILED\n");
             exit(-1);
         }
+
+
 	} else if (action == WRITE) {
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
@@ -376,14 +387,17 @@ int main(int argc, char **argv) {
 		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			fprintf(stderr, "Writing Intel hex file ");
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
+		} else if (is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec")) {
+			fprintf(stderr, "Writing Motorola S-record file ");
+			bytes_to_write = srec_read(f, buf, start, start + bytes_count);
 		} else {
 			fprintf(stderr, "Writing binary file ");
 			fseek(f, 0L, SEEK_END);
 			bytes_to_write = ftell(f);
             if(bytes_count_specified) {
-                bytes_to_write = bytes_count; 
+                bytes_to_write = bytes_count;
             } else if(bytes_count < bytes_to_write) {
-                bytes_to_write = bytes_count; 
+                bytes_to_write = bytes_count;
             }
 			fseek(f, 0, SEEK_SET);
 			fread(buf, 1, bytes_to_write, f);
@@ -411,7 +425,7 @@ int main(int argc, char **argv) {
 			for (int i=0; i<bytes_to_write;i++) {
 				buf[i]=0;
 				if ((i>0)&&((i&1)==0)) buf[i]=0xff;
-			}			
+			}
 		}
 
 		/* flashing MCU */

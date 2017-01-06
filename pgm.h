@@ -3,7 +3,7 @@
 
 #ifndef WIN32
  #include <endian.h>
- #include <libusb.h>
+ #include "libusb.h"
 #else
  #include <libusb-1.0/libusb.h>
 #endif
@@ -52,4 +52,3 @@ typedef int (*pgm_read_range_cb)(programmer_t *, unsigned char *, unsigned int, 
 typedef int (*pgm_write_range_cb)(programmer_t *, unsigned char *, unsigned int, unsigned int);
 
 #endif
-
