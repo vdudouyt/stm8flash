@@ -3,7 +3,7 @@
 
 #ifndef WIN32
  #include <endian.h>
- #include "libusb.h"
+ #include <libusb.h>
 #else
  #include <libusb-1.0/libusb.h>
 #endif
