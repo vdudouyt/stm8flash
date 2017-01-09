@@ -22,6 +22,10 @@ extern int opterr;
 extern int optreset;
 #endif
 
+#define VERSION_RELASE_DATE "20170116"
+#define VERSION "1.0"
+#define VERSION_NOTES ""
+
 programmer_t pgms[] = {
 	{ 	"stlink",
 		0x0483, // USB vid
@@ -58,9 +62,17 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
 	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
 	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
+	fprintf(stream, "\t-V             Print Date(YearMomthDay-Version) and Version format is IE: 20171204-1.0\n");
 	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
 }
+
+void print_version_and_exit( bool err) {
+	FILE *stream = err ? stderr : stdout;
+	fprintf(stream, "%s-%s\n%s",VERSION_RELASE_DATE, VERSION, VERSION_NOTES );
+	exit(-err);
+}
+
 
 void spawn_error(const char *msg) {
 	fprintf(stderr, "%s\n", msg);
@@ -144,7 +156,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:lu")) != (char)-1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:luV")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -174,7 +186,7 @@ int main(int argc, char **argv) {
 				action = VERIFY;
 				strcpy(filename, optarg);
 				break;
-			case 'u':
+                        case 'u':
 				action = UNLOCK;
 				start  = 0x4800;
 				memtype = OPT;
@@ -202,8 +214,11 @@ int main(int argc, char **argv) {
 				bytes_count = atoi(optarg);
                 bytes_count_specified = true;
 				break;
+			case 'V':
+                                print_version_and_exit( (bool)0);
+				break;
 			case '?':
-				print_help_and_exit(argv[0], false);
+                                print_help_and_exit(argv[0], false);
 			default:
 				print_help_and_exit(argv[0], true);
 		}
