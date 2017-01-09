@@ -328,7 +328,7 @@ int main(int argc, char **argv) {
           "Reading from Motorola S-record files are not implemented (yet)\n");
       printf("Exiting...\n");
       exit(0);
-      fprintf(stderr, "Reading form Motorola S-record file ");
+      fprintf(stderr, "Reading from Motorola S-record file ");
       srec_write(f, buf, start, start + bytes_count);
     } else {
       fwrite(buf, 1, bytes_count, f);
