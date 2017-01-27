@@ -52,4 +52,3 @@ typedef int (*pgm_read_range_cb)(programmer_t *, unsigned char *, unsigned int, 
 typedef int (*pgm_write_range_cb)(programmer_t *, unsigned char *, unsigned int, unsigned int);
 
 #endif
-
