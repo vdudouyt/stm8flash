@@ -92,12 +92,12 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	free(buf);
 	ERROR2("Address %04x is out of range at line %d\n", chunk_addr, line_no);
       }
-      if(chunk_addr + chunk_len > end) {
+      if(chunk_addr + data_len > end) {
 	free(buf);
-	ERROR2("Address %04x + %d is out of range at line %d\n", chunk_addr, chunk_len, line_no);
+	ERROR2("Address %04x + %d is out of range at line %d\n", chunk_addr, data_len, line_no);
       }
-      if(chunk_addr + chunk_len > greatest_addr) {
-	greatest_addr = chunk_addr + chunk_len;
+      if(chunk_addr + data_len > greatest_addr) {
+	greatest_addr = chunk_addr + data_len;
       }
       buf[chunk_addr - start + (i - 8) / 2] = byte;
     }
