@@ -63,7 +63,7 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
 	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
 	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
-	fprintf(stream, "\t-V             Print Date(YearMomthDay-Version) and Version format is IE: 20171204-1.0\n");
+	fprintf(stream, "\t-V             Print Date(YearMonthDay-Version) and Version format is IE: 20171204-1.0\n");
 	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
 }
