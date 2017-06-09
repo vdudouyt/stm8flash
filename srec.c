@@ -39,17 +39,24 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
   bool found_S5_rec = false;
   unsigned int expected_data_records = 0;
   unsigned int data_len = 0;
+  unsigned char temp = ' ';
+
 
   while(fgets(line, sizeof(line), pFile)) {
     data_record = true; //Assume that the read data is a data record. Set to false if not.
     line_no++;
 
     // Reading chunk header
-    if(sscanf(line, "S%01x%02x%04x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
+    if(sscanf(line, "S%01x%02x%08x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
+      sscanf(line, "%c",&temp);
+      if(temp != 'S')
+      {
+        continue;
+      } 
       free(buf);
       ERROR2("Error while parsing SREC at line %d\n", line_no);
     }
-
+    
     if(chunk_type == 0x00 || chunk_type == 0x04) //Header type record or reserved. Skip!
       {
 	continue;
@@ -64,6 +71,7 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
       }
     else if(is_data_type(chunk_type))
       {
+	chunk_addr = chunk_addr >> (8*(3-chunk_type));
 	data_len = chunk_len - chunk_type - 2; // See https://en.wikipedia.org/wiki/SREC_(file_format)#Record_types
       }
     else
@@ -90,11 +98,11 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
       }
       if(chunk_addr < start) {
 	free(buf);
-	ERROR2("Address %04x is out of range at line %d\n", chunk_addr, line_no);
+	ERROR2("Address %08x is out of range at line %d\n", chunk_addr, line_no);
       }
       if(chunk_addr + data_len > end) {
 	free(buf);
-	ERROR2("Address %04x + %d is out of range at line %d\n", chunk_addr, data_len, line_no);
+	ERROR2("Address %08x + %d is out of range at line %d\n", chunk_addr, data_len, line_no);
       }
       if(chunk_addr + data_len > greatest_addr) {
 	greatest_addr = chunk_addr + data_len;
