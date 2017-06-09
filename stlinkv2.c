@@ -186,7 +186,7 @@ int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsi
 		// Sending USB packet
 		stlink2_cmd(pgm, 0xf40b, 6,
 				HI(block_size), LO(block_size),
-				0x00, EX(start), 
+				0x00, EX(block_start), 
 				HI(block_start), LO(block_start));
 		TRY(128, (stlink2_get_status(pgm) & 0xffff) == 0);
 
