@@ -59,4 +59,5 @@ clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
 
 install:
+	mkdir -p $(DESTDIR)/usr/bin/
 	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/bin/
