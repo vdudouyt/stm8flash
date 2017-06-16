@@ -70,7 +70,7 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 			}
 			if(chunk_type != 0x00) {
 				// The only data records have to be processed
-				continue;
+                break;
 			}
 			if((i - 9) / 2 >= chunk_len) {
 				// Respect chunk_len and do not capture checksum as data
