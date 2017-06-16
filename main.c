@@ -23,8 +23,8 @@ extern int opterr;
 extern int optreset;
 #endif
 
-#define VERSION_RELASE_DATE "20170116"
-#define VERSION "1.0"
+#define VERSION_RELASE_DATE "20170616"
+#define VERSION "1.1"
 #define VERSION_NOTES ""
 
 programmer_t pgms[] = {
