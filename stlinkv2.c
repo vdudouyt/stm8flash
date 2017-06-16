@@ -134,11 +134,9 @@ void stlink2_finish_session(programmer_t *pgm) {
 }
 
 int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	unsigned char buf[4], start2[2];
-	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40a, 7,
 			0x00, 0x01,
-			0x00, 0x00,
+			0x00, EX(start),
 			HI(start), LO(start),
 			byte);
 	usleep(2000);
@@ -146,11 +144,9 @@ int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start
 }
 
 int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
-	unsigned char buf[4], start2[2];
-	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40a, 8,
 			0x00, 0x02,
-			0x00, 0x00,
+			0x00, EX(start),
 			HI(start), LO(start),
 			HI(word), LO(word));
 	usleep(2000);
@@ -158,11 +154,9 @@ int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start)
 }
 
 int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	unsigned char buf[4], start2[2];
-	pack_int16(start, start2);
 	stlink2_cmd(pgm, 0xf40b, 7,
 			0x00, 0x01,
-			0x00, 0x00,
+			0x00, EX(start),
 			HI(start), LO(start),
 			byte);
 	usleep(2000);
@@ -192,7 +186,7 @@ int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsi
 		// Sending USB packet
 		stlink2_cmd(pgm, 0xf40b, 6,
 				HI(block_size), LO(block_size),
-				0x00, 0x00, 
+				0x00, EX(block_start), 
 				HI(block_start), LO(block_start));
 		TRY(128, (stlink2_get_status(pgm) & 0xffff) == 0);
 
@@ -259,7 +253,7 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
             // with the same USB bulk transfer as the command itself
             msg_init(cmd_buf, 0xf40a);
             format_int(&(cmd_buf[2]), BLOCK_SIZE, 2, MP_BIG_ENDIAN);
-            format_int(&(cmd_buf[6]), start + i, 2, MP_BIG_ENDIAN);
+            format_int(&(cmd_buf[5]), start + i, 3, MP_BIG_ENDIAN);
             memcpy(&(cmd_buf[8]), &(buffer[i]), 8);
             msg_send(pgm, cmd_buf, sizeof(cmd_buf));
 
