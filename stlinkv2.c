@@ -195,6 +195,8 @@ int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsi
 		msg_recv(pgm, &(buffer[i]), block_size);
 	}
 
+	stlink2_finish_session(pgm);
+
 	return(length);
 }
 
