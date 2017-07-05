@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#include <malloc.h>
+#ifndef __APPLE__
+ #include <malloc.h>
+#endif
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
@@ -16,7 +18,9 @@
 #include "utils.h"
 
 #ifndef WIN32
-#include <endian.h>
+ #ifndef __APPLE__
+  #include <endian.h>
+ #endif
 #endif
 
 #define STLK_FLAG_ERR 0x01
