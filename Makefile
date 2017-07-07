@@ -28,8 +28,8 @@ ifeq ($(PLATFORM),Linux)
 else ifeq ($(PLATFORM),Darwin)
 	LIBS = $(shell pkg-config --libs libusb-1.0)
 	LIBUSB_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
-	MacOSSDK=$(shell xcrun --show-sdk-path)
-	BASE_CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
+	#MacOSSDK=$(shell xcrun --show-sdk-path)
+	#BASE_CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
 else
 # 	Generic case is Windows
 

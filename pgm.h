@@ -2,7 +2,9 @@
 #define __PGM_H
 
 #ifndef WIN32
- #include <endian.h>
+ #ifndef __APPLE__
+  #include <endian.h>
+ #endif
  #include <libusb.h>
 #else
  #include <libusb-1.0/libusb.h>
