@@ -30,6 +30,9 @@ else ifeq ($(PLATFORM),Darwin)
 	LIBUSB_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
 	#MacOSSDK=$(shell xcrun --show-sdk-path)
 	#BASE_CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
+else ifeq ($(PLATFORM),FreeBSD)
+	LIBS = `pkg-config --libs libusb-1.0`
+	LIBUSB_CFLAGS = `pkg-config --cflags libusb-1.0`
 else
 # 	Generic case is Windows
 
@@ -59,5 +62,10 @@ clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
 
 install:
+ifeq ($(PLATFORM),FreeBSD)
+	mkdir -p $(DESTDIR)/usr/local/bin/
+	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/local/bin/
+else
 	mkdir -p $(DESTDIR)/usr/bin/
 	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/bin/
+endif
