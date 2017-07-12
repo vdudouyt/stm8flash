@@ -4,9 +4,14 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#ifndef __APPLE__
- #include <malloc.h>
+#ifdef __APPLE__
 #endif
+
+#ifdef __linux__
+ #include <malloc.h>
+#include <endian.h>
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
@@ -16,12 +21,6 @@
 #include "pgm.h"
 #include "stlink.h"
 #include "utils.h"
-
-#ifndef WIN32
- #ifndef __APPLE__
-  #include <endian.h>
- #endif
-#endif
 
 #define STLK_FLAG_ERR 0x01
 #define STLK_FLAG_BUFFER_FULL 0x04
