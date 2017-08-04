@@ -8,6 +8,16 @@
 
 PLATFORM=$(shell uname -s)
 
+PWD=$(shell pwd)
+# Directory for Libusb - added @boseji <salearj@hotmail.com> 2017-08-04
+LIBUSB_DIR=../libusb-1.0.21
+# Architecture Libusb - added @boseji <salearj@hotmail.com> 2017-08-04
+#  - Can be `64` or `32` only
+LIBUSB_ARCH=64
+# Compiler Libusb - added @boseji <salearj@hotmail.com> 2017-08-04
+#  - Can be `MinGW` for mingw-w64-x86 or `MS` for Microsoft Visual Studio
+LIBUSB_COMP=MinGW
+
 # Pass RELEASE=anything to build without debug symbols
 ifneq (,$(strip $(RELEASE)))
 	BASE_CFLAGS := -O1
@@ -35,10 +45,14 @@ else ifeq ($(PLATFORM),FreeBSD)
 	LIBUSB_CFLAGS = `pkg-config --cflags libusb-1.0`
 else
 # 	Generic case is Windows
+	
+	# Modification Start @boseji <salearj@hotmail.com> 2017-08-04
+	BASE_CFLAGS += -I$(LIBUSB_DIR)/include
+	LIBS   = -lusb-1.0 -L$(PWD)/$(LIBUSB_DIR)/$(LIBUSB_COMP)$(LIBUSB_ARCH)/static
+	# Modification End @boseji <salearj@hotmail.com> 2017-08-04 
 
-	LIBS   = -lusb-1.0
 	LIBUSB_CFLAGS =
-	CC	   ?= GCC
+	CC	   = gcc
 	BIN_SUFFIX =.exe
 endif
 

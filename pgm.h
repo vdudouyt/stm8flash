@@ -15,7 +15,8 @@
 #endif
 
 #ifdef WIN32
- #include <libusb-1.0/libusb.h>
+/* Modification @boseji <salearj@hotmail.com> 2017-08-04 */
+ #include "libusb-1.0/libusb.h"
 #endif
 
 #include "stm8.h"
