@@ -243,6 +243,32 @@ const stm8_device_t stm8_devices[] = {
         REGS_STM8L
     },
     {
+        .name = "stm8al318?",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2*1024,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        .option_bytes_size = 13,
+        .read_out_protection_mode = ROP_UNKNOWN,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8al31e8?",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2*1024,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        .option_bytes_size = 13,
+        .read_out_protection_mode = ROP_UNKNOWN,
+        REGS_STM8L
+    },
+    {
         .name = "stm8al3l4?",
         .ram_start = 0x0000,
         .ram_size = 2*1024,
@@ -265,6 +291,32 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
+        .read_out_protection_mode = ROP_UNKNOWN,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8al3l8?",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2*1024,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        .option_bytes_size = 13,
+        .read_out_protection_mode = ROP_UNKNOWN,
+        REGS_STM8L
+    },
+    {
+        .name = "stm8al3le8?",
+        .ram_start = 0x0000,
+        .ram_size = 4*1024,
+        .eeprom_start = 0x1000,
+        .eeprom_size = 2*1024,
+        .flash_start = 0x8000,
+        .flash_size = 64*1024,
+        .flash_block_size = 128,
+        .option_bytes_size = 13,
         .read_out_protection_mode = ROP_UNKNOWN,
         REGS_STM8L
     },
