@@ -1,7 +1,7 @@
 stm8flash
 =========
 
-This is a free and opensource software distributed under the terms of GNU General Public License v2.
+This is a free and opensource software distributed under the terms of the GNU General Public License v2.
 
 It also seems to be the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux as for March, 2014.
 
@@ -108,6 +108,6 @@ Legend:
   * `ok`   - Fully supported.
   * `no`   - Not supported.
   * `?`    - Not tested.
-  * `FÁIL` - Not working. Needs fix.
+  * `FAIL` - Not working. Needs fix.
   * `32`   - Lower 32K of flash works, upper doesn't.
 
