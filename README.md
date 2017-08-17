@@ -1,7 +1,7 @@
 stm8flash
 =========
 
-This is a free and opensource software distributed under the terms of GNU General Public License v2.
+This is a free and opensource software distributed under the terms of the GNU General Public License v2.
 
 It also seems to be the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux as for March, 2014.
 
@@ -39,7 +39,7 @@ Support table
 |-------------|-------|--------|------|--------|---------|-------|
 | stlux???a   |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8af526?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8af528?  |  ?    |  ?     |  ?   |  32    |  ?      |  ?    |
+| stm8af528?  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8af52a?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8af6213  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8af6223  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -54,8 +54,12 @@ Support table
 | stm8al313?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al314?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al316?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8al318?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8al31e8? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al3l4?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al3l6?  |  ?    |  ?     |  ?   |  ok    |  ok     |  ok   |
+| stm8al3l8?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8al3le8? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l051f3  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052c6  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052r8  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -71,11 +75,12 @@ Support table
 | stm8l152?6  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8l152?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l162?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8s001j3  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s003?3  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
 | stm8s005?6  |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s103f2  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s103?3  |  OK   |  ?     |  ?   |  ok    |  ?      |  ?    |
+| stm8s103?3  |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s105?4  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8s105?6  |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s207c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -83,15 +88,16 @@ Support table
 | stm8s207k8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207m8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207mb  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s207r8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8s207r8  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s207rb  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s207s8  |  ?    |  ?     |  ?   |  32    |  ?      |  ?    |
+| stm8s207s8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207sb  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207?6  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s208c6  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
+| stm8s208r6  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s208s6  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s208?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s208?b  |  ?    |  ?     |  ?   |  32    |  ?      |  ?    |
+| stm8s208?b  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s903?3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ok   |
 | stm8splnb1  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8tl5??4  |  ?    |  no    |  ?   |  ?     |  no     |  ?    |
@@ -102,6 +108,5 @@ Legend:
   * `ok`   - Fully supported.
   * `no`   - Not supported.
   * `?`    - Not tested.
-  * `FÁIL` - Not working. Needs fix.
-  * `32`   - Lower 32K of flash works, upper doesn't.
+  * `FAIL` - Not working. Needs fix.
 
