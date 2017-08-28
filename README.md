@@ -101,7 +101,7 @@ Support table
 | stm8s903?3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ok   |
 | stm8splnb1  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8tl5??4  |  ?    |  no    |  ?   |  ?     |  no     |  ?    |
-| stnrg???a   |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stnrg???a   |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
 
 Legend:
 
