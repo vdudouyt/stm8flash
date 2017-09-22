@@ -15,8 +15,9 @@ typedef struct stm8_regs {
 
 
 typedef enum {
-    ROP_UNKNOWN,
-    ROP_STM8S_STD    // Disable ROP=0x00, option bytes are written inverted and noninverted
+	ROP_UNKNOWN,
+	ROP_STM8S,     // Disable ROP = 0x00 and reset. Option bytes are written noninverted and inverted.
+	ROP_STM8L,     // Disable ROP = 0xaa, read EOP, ROP = 0xaa, read EOP. Option bytes are written noninverted.
 } ROP_type_t;
 
 typedef struct stm8_device {
@@ -27,12 +28,13 @@ typedef struct stm8_device {
 	unsigned int eeprom_size;
 	unsigned int flash_start;
 	unsigned int flash_size;
-    unsigned int flash_block_size;
-    unsigned int option_bytes_size;
-    ROP_type_t   read_out_protection_mode; 
+	unsigned int flash_block_size;
+	unsigned int option_bytes_size;
+	ROP_type_t   read_out_protection_mode; 
 	stm8_regs_t regs;
 } stm8_device_t;
 
 extern const stm8_device_t stm8_devices[];
 
 #endif
+

@@ -436,12 +436,13 @@ int main(int argc, char **argv) {
 	} else if (action == UNLOCK) {
 		int bytes_to_write=part->option_bytes_size;
 
-		if (part->read_out_protection_mode==ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
+		if (part->read_out_protection_mode == ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
+		if (part->read_out_protection_mode != ROP_STM8S) spawn_error("Unimplemented unlocking mode");
 
 		unsigned char *buf=malloc(bytes_to_write);
 		if(!buf) spawn_error("malloc failed");
 
-		if (part->read_out_protection_mode==ROP_STM8S_STD) {
+		if (part->read_out_protection_mode == ROP_STM8S) {
 			for (int i=0; i<bytes_to_write;i++) {
 				buf[i]=0;
 				if ((i>0)&&((i&1)==0)) buf[i]=0xff;
