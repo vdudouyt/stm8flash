@@ -75,7 +75,7 @@ Support table
 | stm8l152?6  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8l152?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l162?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
+| stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ?    |
 | stm8s003?3  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
 | stm8s005?6  |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
