@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
 		int bytes_to_verify;
 		/* reading bytes to RAM */
 		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
-			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
+			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
 		} else {
 			fseek(f, 0L, SEEK_END);
 			bytes_to_verify = ftell(f);
