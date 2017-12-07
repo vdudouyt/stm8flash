@@ -336,11 +336,6 @@ int main(int argc, char **argv) {
 		}
 		else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
 		{
-			printf("Reading from Motorola S-record files are not implemented (yet)\n");
-      printf("Exiting...\n");
-			exit(-1);
-
-			//TODO Remove the above message and exit, and implement reading from S-record.
 			fprintf(stderr, "Reading from Motorola S-record file ");
 			srec_write(f, buf, start, start+bytes_count);
 		}
@@ -372,6 +367,10 @@ int main(int argc, char **argv) {
 		/* reading bytes to RAM */
 		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
 			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
+		}
+		else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
+		{
+			bytes_to_verify = srec_read(f, buf2, start, start + bytes_count);
 		} else {
 			fseek(f, 0L, SEEK_END);
 			bytes_to_verify = ftell(f);
