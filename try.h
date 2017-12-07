@@ -1,3 +1,5 @@
+#include "error.h"
+
 #define TRY(times, statement) do { 		\
 	int c = (times);			\
 	while(c > 0) {				\

@@ -1,4 +1,4 @@
-
+#include <stdlib.h>
 
 // Fixes warning
 #undef ERROR

@@ -47,7 +47,7 @@ override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
 
 BIN 		=stm8flash
-OBJECTS 	=stlink.o stlinkv2.o main.o byte_utils.o ihex.o srec.o stm8.o
+OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o
 
 
 .PHONY: all clean install
@@ -57,6 +57,7 @@ $(BIN)$(BIN_SUFFIX): $(OBJECTS)
 
 all: $(BIN)$(BIN_SUFFIX)
 
+$(OBJECTS): $(wildcard *.h)
 
 clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
