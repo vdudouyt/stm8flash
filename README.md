@@ -60,6 +60,7 @@ Support table
 | stm8al3l6?  |  ?    |  ?     |  ?   |  ok    |  ok     |  ok   |
 | stm8al3l8?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al3le8? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l001j3  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l051f3  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052c6  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052r8  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
