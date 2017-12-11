@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "pgm.h"
+#include "espstlink.h"
 #include "stlink.h"
 #include "stlinkv2.h"
 #include "stm8.h"
@@ -47,6 +48,16 @@ programmer_t pgms[] = {
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
 	},
+    {
+		"espstlink",
+		0,
+		0,
+		espstlink_open,
+		espstlink_close,
+		espstlink_srst,
+		espstlink_swim_read_range,
+		espstlink_swim_write_range,
+	},
 	{ NULL },
 };
 
@@ -55,7 +66,8 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
 	fprintf(stream, "Options:\n");
 	fprintf(stream, "\t-?             Display this help\n");
-	fprintf(stream, "\t-c programmer  Specify programmer used (stlink or stlinkv2)\n");
+	fprintf(stream, "\t-c programmer  Specify programmer used (stlink, stlinkv2 or espstlink)\n");
+	fprintf(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
 	fprintf(stream, "\t-p partno      Specify STM8 device\n");
 	fprintf(stream, "\t-l             List supported STM8 devices\n");
 	fprintf(stream, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
@@ -92,7 +104,9 @@ bool is_ext(const char *filename, const char *ext) {
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
-bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
+bool usb_init(programmer_t *pgm) {
+	if (!pgm->usb_vid && !pgm->usb_pid) return(true);
+
 	libusb_device **devs;
 	libusb_context *ctx = NULL;
 
@@ -109,7 +123,7 @@ bool usb_init(programmer_t *pgm, unsigned int vid, unsigned int pid) {
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
-	pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, vid, pid);
+	pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
 	pgm->ctx = ctx;
 	if (!pgm->dev_handle) spawn_error("Could not open USB device.");
 	// assert(pgm->dev_handle);
@@ -155,10 +169,11 @@ int main(int argc, char **argv) {
 		part_specified = false,
         bytes_count_specified = false;
 	memtype_t memtype = FLASH;
+	const char * port = NULL;
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:s:b:luV")) != (char)-1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:p:d:s:b:luV")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -170,6 +185,9 @@ int main(int argc, char **argv) {
 			case 'p':
 				part_specified = true;
 				part = get_part(optarg);
+				break;
+			case 'd':
+				port = strdup(optarg);
 				break;
 			case 'l':
 				for(i = 0; stm8_devices[i].name; i++)
@@ -234,6 +252,7 @@ int main(int argc, char **argv) {
 	}
 	if(!pgm)
 		spawn_error("No programmer has been specified");
+	pgm->port = port;
 	if(part_specified && !part) {
 		fprintf(stderr, "No valid part specified. Use -l to see the list of supported devices.\n");
 		exit(-1);
@@ -309,7 +328,7 @@ int main(int argc, char **argv) {
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))
 		print_help_and_exit(argv[0], true);
-	if(!usb_init(pgm, pgm->usb_vid, pgm->usb_pid))
+	if(!usb_init(pgm))
 		spawn_error("Couldn't initialize stlink");
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
@@ -371,7 +390,7 @@ int main(int argc, char **argv) {
 		int bytes_to_verify;
 		/* reading bytes to RAM */
 		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
-			bytes_to_verify = ihex_read(f, buf, start, start + bytes_count);
+			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
 		} else {
 			fseek(f, 0L, SEEK_END);
 			bytes_to_verify = ftell(f);

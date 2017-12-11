@@ -52,8 +52,13 @@ typedef struct programmer_s {
 	/* Private */
 	libusb_device_handle *dev_handle;
 	libusb_context *ctx;
+
 	unsigned int msg_count; // debugging only
 	unsigned int out_msg_size; // stlink/stlinkv2
+
+	/* Data for espstlink module. */
+	int dev_fd;
+	const char *port;
 } programmer_t;
 
 typedef bool (*pgm_open_cb)(programmer_t *);
