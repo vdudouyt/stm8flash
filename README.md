@@ -60,6 +60,7 @@ Support table
 | stm8al3l6?  |  ?    |  ?     |  ?   |  ok    |  ok     |  ok   |
 | stm8al3l8?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8al3le8? |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l001j3  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l051f3  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052c6  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l052r8  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
@@ -75,7 +76,7 @@ Support table
 | stm8l152?6  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
 | stm8l152?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l162?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
+| stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ?    |
 | stm8s003?3  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
 | stm8s005?6  |  ok   |  ?     |  ok  |  ?     |  ?      |  ?    |
 | stm8s007c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
