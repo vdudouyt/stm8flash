@@ -37,6 +37,7 @@ Support table
 
 | MCU         | flash | eeprom | opt  | flash2 | eeprom2 | opt2  |
 |-------------|-------|--------|------|--------|---------|-------|
+| stlux385    |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stlux???a   |  ?    |  ?     |  ?   |  ok    |  ok     |  ?    |
 | stm8af526?  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8af528?  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
