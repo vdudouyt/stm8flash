@@ -4,11 +4,7 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#ifdef __APPLE__
-#endif
-
 #ifdef __linux__
- #include <malloc.h>
 #include <endian.h>
 #endif
 

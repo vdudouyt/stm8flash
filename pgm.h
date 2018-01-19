@@ -1,21 +1,10 @@
 #ifndef __PGM_H
 #define __PGM_H
 
-#ifdef __FreeBSD__
- #include <libusb.h>
-#endif
-
-#ifdef __linux__
-  #include <endian.h>
- #include <libusb.h>
- #endif
-
-#ifdef __APPLE__
- #include <libusb.h>
-#endif
-
 #ifdef WIN32
  #include <libusb-1.0/libusb.h>
+#else
+ #include <libusb.h>
 #endif
 
 #include "stm8.h"
