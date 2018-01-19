@@ -4,6 +4,7 @@
 #define MP_LITTLE_ENDIAN 0
 #define MP_BIG_ENDIAN 1
 
+#define EH(x) ((unsigned)((x) & 0xff000000) >> 24)
 #define EX(x) (((x) & 0xff0000) >> 16)
 #define HI(x) (((x) & 0xff00) >> 8)
 #define LO(x) ((x) & 0xff)
