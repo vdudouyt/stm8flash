@@ -3,7 +3,10 @@ stm8flash
 
 This is a free and opensource software distributed under the terms of the GNU General Public License v2.
 
-It also seems to be the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux as for March, 2014.
+For years, it was the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux.
+
+Since 2018, OpenOCD also offers the basic functionality, and also has support for on-target debugging.
+As of early 2018, stm8flash has wider device support, and better support for memory read/wite operations.
 
 
 Synopsis
