@@ -63,10 +63,6 @@ clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
 
 install:
-ifeq ($(PLATFORM),FreeBSD)
 	mkdir -p $(DESTDIR)/usr/local/bin/
 	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/local/bin/
-else
-	mkdir -p $(DESTDIR)/usr/bin/
-	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/bin/
-endif
+
