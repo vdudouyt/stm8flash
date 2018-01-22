@@ -16,6 +16,12 @@
 #include "ihex.h"
 #include "srec.h"
 
+typedef enum {
+    INTEL_HEX = 0,
+    MOTOROLA_S_RECORD,
+    RAW_BINARY
+} fileformat_t;
+
 #ifdef __APPLE__
 extern char *optarg;
 extern int optind;
@@ -164,6 +170,7 @@ int main(int argc, char **argv) {
 	// Parsing command line
 	char c;
 	action_t action = NONE;
+	fileformat_t fileformat = RAW_BINARY;
 	bool start_addr_specified = false,
 		pgm_specified = false,
 		part_specified = false,
@@ -333,50 +340,52 @@ int main(int argc, char **argv) {
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
 
+	if(is_ext(filename, ".ihx") || is_ext(filename, ".hex") || is_ext(filename, ".i86"))
+		fileformat = INTEL_HEX;
+	else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
+		fileformat = MOTOROLA_S_RECORD;
+	fprintf(stderr, "Due to its file extension (or lack thereof), \"%s\" is considered as %s format!\n", filename, fileformat == INTEL_HEX ? "INTEL HEX" : (fileformat == MOTOROLA_S_RECORD ? "MOTOROLA S-RECORD" : "RAW BINARY"));
 
 	FILE *f;
 	if(action == READ) {
 		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
 		fflush(stderr);
-        int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
+		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
-        if(recv < bytes_count_align) {
-            fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+		if(recv < bytes_count_align) {
+			fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
 			spawn_error("Failed to read MCU");
-        }
+		}
 		if(!(f = fopen(filename, "w")))
 			spawn_error("Failed to open file");
-		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex"))
+		switch(fileformat)
 		{
-			fprintf(stderr, "Reading from Intel hex file ");
+		case INTEL_HEX:
 			ihex_write(f, buf, start, start+bytes_count);
-		}
-		else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
-		{
-			fprintf(stderr, "Reading from Motorola S-record file ");
+			break;
+		case MOTOROLA_S_RECORD:
 			srec_write(f, buf, start, start+bytes_count);
-		}
-		else
-		{
+			break;
+		default:
 			fwrite(buf, 1, bytes_count, f);
 		}
 		fclose(f);
 		fprintf(stderr, "OK\n");
 		fprintf(stderr, "Bytes received: %d\n", bytes_count);
-    } else if (action == VERIFY) {
+	} else if (action == VERIFY) {
 		fprintf(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
 		fflush(stderr);
 
-        int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
+		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
-        if(recv < bytes_count_align) {
-            fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+		if(recv < bytes_count_align) {
+			fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
 			spawn_error("Failed to read MCU");
-        }
+		}
 
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
@@ -384,59 +393,60 @@ int main(int argc, char **argv) {
 		if(!buf2) spawn_error("malloc failed");
 		int bytes_to_verify;
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
-			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
-		}
-		else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
+		switch(fileformat)
 		{
+		case INTEL_HEX:
+			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
+			break;
+		case MOTOROLA_S_RECORD:
 			bytes_to_verify = srec_read(f, buf2, start, start + bytes_count);
-		} else {
+			break;
+		default:
 			fseek(f, 0L, SEEK_END);
 			bytes_to_verify = ftell(f);
-            if(bytes_count_specified) {
-                bytes_to_verify = bytes_count;
-            } else if(bytes_count < bytes_to_verify) {
-                bytes_to_verify = bytes_count;
-            }
+			if(bytes_count_specified)
+				bytes_to_verify = bytes_count;
+			else if(bytes_count < bytes_to_verify)
+				bytes_to_verify = bytes_count;
 			fseek(f, 0, SEEK_SET);
 			fread(buf2, 1, bytes_to_verify, f);
 		}
 		fclose(f);
 
-        if(memcmp(buf, buf2, bytes_to_verify) == 0) {
-            fprintf(stderr, "OK\n");
-            fprintf(stderr, "Bytes verified: %d\n", bytes_to_verify);
-        } else {
-            fprintf(stderr, "FAILED\n");
-            exit(-1);
-        }
+		if(memcmp(buf, buf2, bytes_to_verify) == 0) {
+			fprintf(stderr, "OK\n");
+			fprintf(stderr, "Bytes verified: %d\n", bytes_to_verify);
+		} else {
+			fprintf(stderr, "FAILED\n");
+			exit(-1);
+		}
 
 
 	} else if (action == WRITE) {
 		if(!(f = fopen(filename, "r")))
 			spawn_error("Failed to open file");
-        int bytes_count_align = ((bytes_count-1)/part->flash_block_size+1)*part->flash_block_size;
+		int bytes_count_align = ((bytes_count-1)/part->flash_block_size+1)*part->flash_block_size;
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
-        memset(buf, 0, bytes_count_align); // Clean aligned buffer
+		memset(buf, 0, bytes_count_align); // Clean aligned buffer
 		int bytes_to_write;
 
 		/* reading bytes to RAM */
-		if(is_ext(filename, ".ihx") || is_ext(filename, ".hex")) {
-			fprintf(stderr, "Writing Intel hex file ");
+		switch(fileformat)
+		{
+		case INTEL_HEX:
 			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
-		} else if (is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec")) {
-			fprintf(stderr, "Writing Motorola S-record file ");
+			break;
+		case MOTOROLA_S_RECORD:
 			bytes_to_write = srec_read(f, buf, start, start + bytes_count);
-		} else {
-			fprintf(stderr, "Writing binary file ");
+			break;
+		default:
 			fseek(f, 0L, SEEK_END);
 			bytes_to_write = ftell(f);
-            if(bytes_count_specified) {
-                bytes_to_write = bytes_count;
-            } else if(bytes_count < bytes_to_write) {
-                bytes_to_write = bytes_count;
-            }
+			if(bytes_count_specified)
+				bytes_to_write = bytes_count;
+			else if(bytes_count < bytes_to_write)
+				bytes_to_write = bytes_count;
 			fseek(f, 0, SEEK_SET);
 			fread(buf, 1, bytes_to_write, f);
 		}

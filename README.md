@@ -16,6 +16,8 @@ Synopsis
 stm8flash -c <stlink|stlinkv2|espstlink> -p <partname> [-s flash|eeprom|0x8000] [-r|-w|-v] <filename>
 ```
 
+The supported file types are Intel Hex, Motorola S-Record and Raw Binary. The type is detected by the file extension.
+
 Flash examples:
 ```nohighlight
 ./stm8flash -c stlink -p stm8s003f3 -w blinky.bin
