@@ -56,7 +56,6 @@ static void set_error(int code, char *format, ...) {
 
 espstlink_t *espstlink_open(const char *device) {
   struct termios tty;
-  struct termios tty_old;
   memset(&tty, 0, sizeof tty);
 
   int fd = open(device == NULL ? "/dev/ttyUSB0" : device, O_RDWR | O_NOCTTY);
@@ -70,9 +69,6 @@ espstlink_t *espstlink_open(const char *device) {
     perror("Couldn't open tty");
     return NULL;
   }
-
-  /* Save old tty parameters */
-  tty_old = tty;
 
   /* Set Baud Rate */
   cfsetospeed(&tty, (speed_t)B115200);
@@ -195,7 +191,6 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
 
 bool espstlink_swim_srst(const espstlink_t *pgm) {
   uint8_t cmd[] = {0};
-  uint8_t resp_buf[4];
 
   write(pgm->fd, cmd, 1);
   return error_check(pgm->fd, cmd[0], NULL, 0);
