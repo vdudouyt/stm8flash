@@ -465,8 +465,7 @@ int main(int argc, char **argv) {
 		int bytes_to_write=part->option_bytes_size;
 
 		if (part->read_out_protection_mode == ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
-		if (part->read_out_protection_mode != ROP_STM8S) spawn_error("Unimplemented unlocking mode");
-
+		
 		unsigned char *buf=malloc(bytes_to_write);
 		if(!buf) spawn_error("malloc failed");
 
@@ -476,7 +475,14 @@ int main(int argc, char **argv) {
 				if ((i>0)&&((i&1)==0)) buf[i]=0xff;
 			}
 		}
-
+		else if (part->read_out_protection_mode == ROP_STM8L) {
+			buf[0] = 0xAA;
+			for (int i=1; i<bytes_to_write;i++) {
+				buf[i]=0;
+			}
+			buf[10] = 0x01;
+		}
+		else spawn_error("Unimplemented unlocking mode");
 		/* flashing MCU */
 		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write, memtype);
 		if(pgm->reset) {
