@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include "stm8.h"
 #include "pgm.h"
+#include "try.h"
+#include "byte_utils.h"
 #include "stlink.h"
 #include "utils.h"
 
@@ -449,7 +451,7 @@ int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 			unsigned int start,
 			unsigned int length,
 			unsigned int padding
-			) {
+			) {		
 	int length1 = 8 - padding; // Amount to be transferred with CBW
 	int length2 = length - 8 + padding; // Amount to be transferred with additional transfer
 	if (length2 < 0) length2 = 0;
@@ -533,15 +535,35 @@ int stlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device, unsi
 					flash_block_size - block_size);
 			block_size = flash_block_size;
 		}
-        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+        if(memtype == FLASH || memtype == EEPROM) {
             stlink_swim_write_byte(pgm, 0x01, device->regs.FLASH_CR2);
             if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
                 stlink_swim_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
             }
+        } else if (memtype == OPT) {
+            // option programming mode
+            stlink_swim_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
+            if(device->regs.FLASH_NCR2 != 0) {
+                stlink_swim_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
+            }
         }
-		int result = stlink_swim_write_block(pgm, block, start + i, block_size, 0);
-		if(result & STLK_FLAG_ERR)
-			fprintf(stderr, "Write error\n");
+        
+        if(memtype == OPT){
+            if(device->read_out_protection_mode == ROP_STM8L && buffer[0]==0xAA && start == 0x4800) { // trying to unlock
+           		stlink_swim_write_byte(pgm, 0xAA, start);
+                TRY(8, HI(stlink_swim_get_status(pgm)) == 1);
+            }
+            int j;
+            for(j = 0; j < length; j++){
+                stlink_swim_write_byte(pgm, buffer[j], start+j);
+                TRY(8, HI(stlink_swim_get_status(pgm)) == 1);
+            }
+        } else {
+        DEBUG_PRINT("Here\n");
+			int result = stlink_swim_write_block(pgm, block, start + i, block_size, 0);
+			if(result & STLK_FLAG_ERR)
+				fprintf(stderr, "Write error\n");
+		}
 	}
     if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
         stlink_swim_write_byte(pgm, 0x56, device->regs.FLASH_IAPSR);
