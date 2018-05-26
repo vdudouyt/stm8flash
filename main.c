@@ -220,26 +220,26 @@ int main(int argc, char **argv) {
 				strcpy(filename, "Workaround");
 				break;
 			case 's':
-                // Start addr is depending on MCU type
-				if(strcasecmp(optarg, "flash") == 0) {
+				// Start addr is depending on MCU type
+				if(strcasecmp(optarg, "flash") == 0)
 					memtype = FLASH;
-                } else if(strcasecmp(optarg, "eeprom") == 0) {
+				else if(strcasecmp(optarg, "eeprom") == 0)
 					memtype = EEPROM;
-                } else if(strcasecmp(optarg, "ram") == 0) {
+				else if(strcasecmp(optarg, "ram") == 0)
 					memtype = RAM;
-                } else if(strcasecmp(optarg, "opt") == 0) {
+				else if(strcasecmp(optarg, "opt") == 0)
 					memtype = OPT;
-				} else {
+				else {
 					// Start addr is specified explicitely
 					memtype = UNKNOWN;
-					int success = sscanf(optarg, "%x", (unsigned*)&start);
-					assert(success);
-                    start_addr_specified = true;
+					if(sscanf(optarg, "%x", (unsigned*)&start) != strlen(optarg))
+						spawn_error("Invalid memory type or location specified");
+					start_addr_specified = true;
 				}
 				break;
 			case 'b':
 				bytes_count = atoi(optarg);
-                bytes_count_specified = true;
+				bytes_count_specified = true;
 				break;
 			case 'V':
                                 print_version_and_exit( (bool)0);
@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
 	if(!part)
 		spawn_error("No part has been specified");
 
-    // Try define memory type by address
+	// Try define memory type by address
 	if(memtype == UNKNOWN) {
         if((start >= 0x4800) && (start < 0x4880)) {
             memtype = OPT;
