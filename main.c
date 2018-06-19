@@ -69,10 +69,11 @@ programmer_t pgms[] = {
 
 void print_help_and_exit(const char *name, bool err) {
 	FILE *stream = err ? stderr : stdout;
-	fprintf(stream, "Usage: %s [-c programmer] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	fprintf(stream, "Usage: %s [-c programmer] [-S serial] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
 	fprintf(stream, "Options:\n");
 	fprintf(stream, "\t-?             Display this help\n");
 	fprintf(stream, "\t-c programmer  Specify programmer used (stlink, stlinkv2 or espstlink)\n");
+	fprintf(stream, "\t-S serial      Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
 	fprintf(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
 	fprintf(stream, "\t-p partno      Specify STM8 device\n");
 	fprintf(stream, "\t-l             List supported STM8 devices\n");
@@ -110,11 +111,24 @@ bool is_ext(const char *filename, const char *ext) {
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
-bool usb_init(programmer_t *pgm) {
+void serial_to_hex(const char *serial, char *serial_hex) {
+	for(int i=0;i<strlen(serial);i++)
+	{
+		serial_hex += sprintf(serial_hex, "%02X", serial[i]);
+	}
+}
+
+bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
 	if (!pgm->usb_vid && !pgm->usb_pid) return(true);
 
 	libusb_device **devs;
 	libusb_context *ctx = NULL;
+	int numOfProgrammers = 0;
+	char vendor[32];
+	char device[32];
+	char serial[32];
+	char serial_hex[64];
+
 
 	int r;
 	ssize_t cnt;
@@ -129,7 +143,70 @@ bool usb_init(programmer_t *pgm) {
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
-	pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
+	// count available programmers
+	for(int i=0; i<cnt; i++) {
+		struct libusb_device_descriptor desc;
+		libusb_get_device_descriptor(devs[i], &desc);
+		if(desc.idVendor == pgm->usb_vid && desc.idProduct == pgm->usb_pid) {
+			numOfProgrammers++;
+		}
+
+	}
+
+	if(numOfProgrammers > 1 || pgm_serial_specified){
+
+		// no serial given
+		if(!pgm_serial_specified) {
+			fprintf(stderr, "WARNING: More than one programmer found but no serial given. Programmer 1 will be used:\n");
+			pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
+		}
+
+		numOfProgrammers = 0;
+		int i=0;
+		for(i=0; i<cnt; i++) {
+			struct libusb_device_descriptor desc;
+			libusb_device_handle *tempHandle;
+
+			libusb_get_device_descriptor(devs[i], &desc);
+			if(desc.idVendor == pgm->usb_vid && desc.idProduct == pgm->usb_pid) {
+				numOfProgrammers++;
+
+				libusb_open(devs[i], &tempHandle);
+
+				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
+				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
+				libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serial, sizeof(serial));
+				serial_to_hex(serial, serial_hex);
+
+				// print programmer data if no serial specified
+				if(!pgm_serial_specified) {
+					fprintf(stderr, "Programmer %d: %s %s, Serial:%s\n", numOfProgrammers, vendor, device, serial_hex);
+				}
+				else
+				{
+					// otherwise check if it's the correct one
+					if(0==strcmp(serial_hex, pgm_serial)) {
+						pgm->dev_handle = tempHandle;
+						break;
+					}
+				}
+				libusb_close(tempHandle);
+			}
+
+		}
+		if(pgm_serial_specified && i==cnt) {
+			fprintf(stderr, "ERROR: No programmer with serial %s found.\n", pgm_serial);
+			return(false);
+		}
+	}
+	else
+	{
+		pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
+	}
+
+
+
+
 	pgm->ctx = ctx;
 	if (!pgm->dev_handle) spawn_error("Could not open USB device.");
 	// assert(pgm->dev_handle);
@@ -167,12 +244,15 @@ int main(int argc, char **argv) {
 	int bytes_count = 0;
 	char filename[256];
 	memset(filename, 0, sizeof(filename));
+	char pgm_serial[64];
+	memset(pgm_serial, 0, sizeof(pgm_serial));
 	// Parsing command line
 	char c;
 	action_t action = NONE;
 	fileformat_t fileformat = RAW_BINARY;
 	bool start_addr_specified = false,
 		pgm_specified = false,
+		pgm_serial_specified = false,
 		part_specified = false,
         bytes_count_specified = false;
 	memtype_t memtype = FLASH;
@@ -180,7 +260,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:p:d:s:b:luV")) != (char)-1) {
+	while((c = getopt (argc, argv, "r:w:v:nc:S:p:d:s:b:luV")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -188,6 +268,11 @@ int main(int argc, char **argv) {
 					if(!strcmp(optarg, pgms[i].name))
 						pgm = &pgms[i];
 				}
+				break;
+			case 'S':
+				pgm_serial_specified = true;
+				if(NULL != optarg)
+					strncpy(pgm_serial, optarg, sizeof(pgm_serial));
 				break;
 			case 'p':
 				part_specified = true;
@@ -220,26 +305,26 @@ int main(int argc, char **argv) {
 				strcpy(filename, "Workaround");
 				break;
 			case 's':
-				// Start addr is depending on MCU type
-				if(strcasecmp(optarg, "flash") == 0)
+                // Start addr is depending on MCU type
+				if(strcasecmp(optarg, "flash") == 0) {
 					memtype = FLASH;
-				else if(strcasecmp(optarg, "eeprom") == 0)
+                } else if(strcasecmp(optarg, "eeprom") == 0) {
 					memtype = EEPROM;
-				else if(strcasecmp(optarg, "ram") == 0)
+                } else if(strcasecmp(optarg, "ram") == 0) {
 					memtype = RAM;
-				else if(strcasecmp(optarg, "opt") == 0)
+                } else if(strcasecmp(optarg, "opt") == 0) {
 					memtype = OPT;
-				else {
+				} else {
 					// Start addr is specified explicitely
 					memtype = UNKNOWN;
-					if(sscanf(optarg, "%x", (unsigned*)&start) != strlen(optarg))
-						spawn_error("Invalid memory type or location specified");
-					start_addr_specified = true;
+					int success = sscanf(optarg, "%x", (unsigned*)&start);
+					assert(success);
+                    start_addr_specified = true;
 				}
 				break;
 			case 'b':
 				bytes_count = atoi(optarg);
-				bytes_count_specified = true;
+                bytes_count_specified = true;
 				break;
 			case 'V':
                                 print_version_and_exit( (bool)0);
@@ -267,7 +352,7 @@ int main(int argc, char **argv) {
 	if(!part)
 		spawn_error("No part has been specified");
 
-	// Try define memory type by address
+    // Try define memory type by address
 	if(memtype == UNKNOWN) {
         if((start >= 0x4800) && (start < 0x4880)) {
             memtype = OPT;
@@ -335,7 +420,7 @@ int main(int argc, char **argv) {
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))
 		print_help_and_exit(argv[0], true);
-	if(!usb_init(pgm))
+	if(!usb_init(pgm, pgm_serial_specified, pgm_serial))
 		spawn_error("Couldn't initialize stlink");
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
@@ -465,7 +550,6 @@ int main(int argc, char **argv) {
 		int bytes_to_write=part->option_bytes_size;
 
 		if (part->read_out_protection_mode == ROP_UNKNOWN) spawn_error("No unlocking mode defined for this device. You may need to edit the file stm8.c");
-		if (part->read_out_protection_mode != ROP_STM8S) spawn_error("Unimplemented unlocking mode");
 
 		unsigned char *buf=malloc(bytes_to_write);
 		if(!buf) spawn_error("malloc failed");
@@ -476,7 +560,14 @@ int main(int argc, char **argv) {
 				if ((i>0)&&((i&1)==0)) buf[i]=0xff;
 			}
 		}
-
+		else if (part->read_out_protection_mode == ROP_STM8L) {
+			buf[0] = 0xAA;
+			for (int i=1; i<bytes_to_write;i++) {
+				buf[i]=0;
+			}
+			buf[10] = 0x00;
+		}
+		else spawn_error("Unimplemented unlocking mode");
 		/* flashing MCU */
 		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write, memtype);
 		if(pgm->reset) {
