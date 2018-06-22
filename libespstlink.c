@@ -32,7 +32,7 @@
 
 static espstlink_error_t error = {0, NULL};
 
-espstlink_error_t *get_last_error() { return &error; }
+espstlink_error_t *espstlink_get_last_error() { return &error; }
 
 /** Set the error message based on a format string. */
 static void set_error(int code, char *format, ...) {
@@ -52,6 +52,8 @@ static void set_error(int code, char *format, ...) {
   va_start(arglist, format);
   vsnprintf(error.message, size, format, arglist);
   va_end(arglist);
+
+  fprintf(stderr, "%s\n", error.message);
 }
 
 espstlink_t *espstlink_open(const char *device) {
@@ -164,7 +166,7 @@ bool espstlink_check_version(const espstlink_t *pgm) {
   if (!error_check(pgm->fd, cmd[0], resp_buf, 2)) return 0;
 
   int version = resp_buf[0] << 8 | resp_buf[1];
-  if (version > 0) {
+  if (version > 1) {
     set_error(ESPSTLINK_ERROR_VERSION, "Unsupported target version: %d.\n",
               version);
     error.device_code = version;
@@ -187,6 +189,13 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
             duration, duration / 80, 128 / 8);
   }
   return 1;
+}
+
+bool espstlink_reset(const espstlink_t *pgm, bool input, bool value) {
+  uint8_t cmd[] = {0xFD, input ? 0xFF : value};
+
+  write(pgm->fd, cmd, 2);
+  return error_check(pgm->fd, cmd[0], NULL, 0);
 }
 
 bool espstlink_swim_srst(const espstlink_t *pgm) {

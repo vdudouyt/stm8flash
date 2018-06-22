@@ -26,7 +26,7 @@ typedef struct _esplink_error_t {
 #define ESPSTLINK_ERROR_COMM 3
 #define ESPSTLINK_ERROR_VERSION 4
 
-espstlink_error_t *get_last_error();
+espstlink_error_t *espstlink_get_last_error();
 
 espstlink_t *espstlink_open(const char *device);
 void espstlink_close(espstlink_t *pgm);
@@ -39,4 +39,11 @@ bool espstlink_swim_read(const espstlink_t *pgm, uint8_t *buffer,
 bool espstlink_swim_write(const espstlink_t *pgm, const uint8_t *buffer,
                           unsigned int addr, size_t size);
 
+/**
+ * Switch the reset pin.
+ * If `input`, the pin is used as an input pin with a pull-up resistor.
+ * Otherwise, the pin is used as an output pin, pulled low or high depending on
+ * `value`.
+ */
+bool espstlink_reset(const espstlink_t *pgm, bool input, bool value);
 #endif

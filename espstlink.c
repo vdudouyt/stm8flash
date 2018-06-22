@@ -44,7 +44,12 @@ static bool espstlink_write_byte(programmer_t *pgm, uint8_t byte,
 }
 
 static bool espstlink_swim_reconnect(programmer_t *pgm) {
+  // Pull reset low
+  if (!espstlink_reset(pgm->espstlink, 0, 0)) return 0;
   if (!espstlink_swim_entry(pgm->espstlink)) return 0;
+  // Put the reset pin back into pullup state.
+  if (!espstlink_reset(pgm->espstlink, 1, 0)) return 0;
+
   if (!espstlink_swim_srst(pgm->espstlink)) return 0;
   usleep(1);
   return espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.

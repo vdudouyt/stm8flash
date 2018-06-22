@@ -20,7 +20,7 @@ ifneq (,$(strip $(LIBUSB_QUIET)))
 	BASE_CFLAGS += -DSTM8FLASH_LIBUSB_QUIET
 endif
 
-BASE_CFLAGS += --std=gnu99 --pedantic
+BASE_CFLAGS += --std=gnu99 --pedantic -Wall
 
 ifeq ($(PLATFORM),Linux)
 	LIBS = `pkg-config --libs libusb-1.0`
@@ -60,7 +60,7 @@ all: $(BIN)$(BIN_SUFFIX)
 $(OBJECTS): $(wildcard *.h)
 
 libespstlink.so: libespstlink.c libespstlink.h
-	$(CC) -shared $(CFLAGS) -fPIC $(OBJECTS) $(LIBS) -o $@
+	$(CC) -shared $(CFLAGS) -fPIC $< -o $@
 
 clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
