@@ -1,0 +1,46 @@
+stm8link is currently licensed under the GPL, version 2, without the "or later" clauzse.
+But some newer parts are licensed under GPLv3. These licenses are incompatible. Moving to
+GPLv2 with the "or later" clause should fix this.
+
+Authors that have agreed to change from "GPLv2 only" or "GPLv3" to "GPLv2 or later":
+
+Philipp Klaus Krause <pkk@spth.de>
+Ryan Pavlik <ryan@sensics.com>
+
+Authors that have not agreed:
+
+No reply yet:
+
+Those that need to be contacted:
+
+Adrian Friedli <adrian.friedli@husqvarnagroup.com>
+Aram Verstegen <aram.verstegen@gmail.com>
+Bill Lash <william.lash@gmail.com>
+Bob Ryan <h36sa@boblaptop.localdomain>
+cpldcpu <cpldcpu@gmail.com>
+Erno Szabados <erno.szabados@windowslive.com>
+Hagen Fritsch <rumpeltux-git@irgendwo.org>
+Henrik Brix Andersen <henrik@brixandersen.dk>
+Ivan A-R <aia@bileter.ru> <i@lolhost.org>
+janezNov <janezNov@users.noreply.github.com> <ziga.stegu@gorenje.com>
+Janne Virsunen <janne.virsunen@gmail.com>
+Jan Szumiec <jan.szumiec@gmail.com>
+jaseg <githubaccount@jaseg.net>
+Jiri Pinkava <j-pi@seznam.cz>
+Jose R Padron <elrafapadron@gmail.com>
+KenjutsuGH <pjakruger@yahoo.com>
+lachlan Audas <laudas1@gmail.com>
+Mario Cianciolo <mr.udda@gmail.com>
+Miklós Márton <martonmiklosqdev@gmail.com>
+Nguyen Huu Hoa <huuhoa@gmail.com>
+plumbum <ivan@tuxotronic.org>
+Ratzzo <ignacio.4096@gmail.com>
+Tadeusz Magura-Witkowski <teeed@na1noc.pl>
+Tim Cameron Ryan <id@timryan.org>
+Tim <cpldcpu@gmail.com>
+Torsten Robitzki <Torsten@Robitzki.de>
+udda <udda@users.noreply.github.com>
+Valentin Dudouyt <valentin.dudouyt@gmail.com>
+Vladimir Koutny <vladimir.koutny@streamunlimited.com>
+Yifei Zhang <njzhangyifei@gmail.com>
+
