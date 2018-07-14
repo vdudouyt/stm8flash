@@ -347,7 +347,6 @@ bool stlink_open(programmer_t *pgm) {
 }
 
 void stlink_close(programmer_t *pgm) {
-	libusb_exit(pgm->ctx); //close the session
 }
 
 void stlink_swim_srst(programmer_t *pgm) {

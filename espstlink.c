@@ -86,7 +86,7 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
 static void espstlink_wait_until_transfer_completes(
     programmer_t *pgm, const stm8_device_t *device) {
   // wait until the EOP bit is set.
-  TRY(8, espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x4);
+  TRY(8, espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x4, "wait for complete");
 }
 
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,

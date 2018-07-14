@@ -49,7 +49,7 @@ programmer_t pgms[] = {
 		0x0483,
 		0x3748,
 		stlink2_open,
-		stlink_close,
+		stlink2_close,
 		stlink2_srst,
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
@@ -141,7 +141,7 @@ bool usb_init(programmer_t *pgm) {
 		assert(r == 0);
 	}
 
-#if defined(__APPLE__) || defined(WIN32)
+#if defined(__linux__) || defined(__APPLE__) || defined(WIN32)
 	r = libusb_claim_interface(pgm->dev_handle, 0);
 	assert(r == 0);
 #endif
@@ -486,5 +486,9 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Unlocked device. Option bytes reset to default state.\n");
 		fprintf(stderr, "Bytes written: %d\n", sent);
 	}
+
+	pgm->close(pgm);
+	libusb_close(pgm->dev_handle);
+	libusb_exit(pgm->ctx);
 	return(0);
 }
