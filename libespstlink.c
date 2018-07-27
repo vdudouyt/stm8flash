@@ -158,7 +158,7 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
   return 0;
 }
 
-bool espstlink_check_version(const espstlink_t *pgm) {
+bool espstlink_fetch_version(espstlink_t *pgm) {
   uint8_t cmd[] = {0xFF};
   uint8_t resp_buf[2];
 
@@ -172,6 +172,7 @@ bool espstlink_check_version(const espstlink_t *pgm) {
     error.device_code = version;
     return 0;
   }
+  pgm->version = version;
   return 1;
 }
 

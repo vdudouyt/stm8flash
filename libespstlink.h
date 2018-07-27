@@ -11,6 +11,7 @@
 
 typedef struct _espstlink_t {
   int fd;
+  int version;
 } espstlink_t;
 
 typedef struct _esplink_error_t {
@@ -30,7 +31,7 @@ espstlink_error_t *espstlink_get_last_error();
 
 espstlink_t *espstlink_open(const char *device);
 void espstlink_close(espstlink_t *pgm);
-bool espstlink_check_version(const espstlink_t *pgm);
+bool espstlink_fetch_version(espstlink_t *pgm);
 
 bool espstlink_swim_entry(const espstlink_t *pgm);
 bool espstlink_swim_srst(const espstlink_t *pgm);
