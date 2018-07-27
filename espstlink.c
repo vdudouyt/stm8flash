@@ -62,23 +62,25 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
                                         const stm8_device_t *device,
                                         const memtype_t memtype) {
   // Set the STALL bit in DM_CSR2, to step any code from executing.
-  uint8_t csr = espstlink_read_byte(pgm, DM_CSR2);
-  espstlink_write_byte(pgm, csr | 8, DM_CSR2);
+  int csr = espstlink_read_byte(pgm, DM_CSR2);
+  if (csr == -1) return 0;
+  if (!espstlink_write_byte(pgm, csr | 8, DM_CSR2)) return 0;
 
   // Unlock MASS
   if (memtype == FLASH) {
-    espstlink_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
-    espstlink_write_byte(pgm, 0xae, device->regs.FLASH_PUKR);
+    if (!espstlink_write_byte(pgm, 0x56, device->regs.FLASH_PUKR)) return 0;
+    if (!espstlink_write_byte(pgm, 0xae, device->regs.FLASH_PUKR)) return 0;
   }
   if (memtype == EEPROM || memtype == OPT) {
-    espstlink_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
-    espstlink_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
+    if (!espstlink_write_byte(pgm, 0xae, device->regs.FLASH_DUKR)) return 0;
+    if (!espstlink_write_byte(pgm, 0x56, device->regs.FLASH_DUKR)) return 0;
   }
 
   // Set the PRG bit in FLASH_CR2 and reset it in FLASH_NCR2.
   uint8_t mode = 0x01;
   uint8_t flash_cr2[] = {mode, ~mode};
-  espstlink_swim_write(pgm->espstlink, flash_cr2, device->regs.FLASH_CR2, 2);
+  return espstlink_swim_write(pgm->espstlink, flash_cr2, device->regs.FLASH_CR2,
+                              2);
 }
 
 static void espstlink_wait_until_transfer_completes(
