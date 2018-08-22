@@ -8,6 +8,7 @@
 #endif
 
 #include "stm8.h"
+#include "libespstlink.h"
 
 typedef enum {
     UNKNOWN,
@@ -46,7 +47,7 @@ typedef struct programmer_s {
 	unsigned int out_msg_size; // stlink/stlinkv2
 
 	/* Data for espstlink module. */
-	int dev_fd;
+        espstlink_t * espstlink;
 	const char *port;
 } programmer_t;
 
