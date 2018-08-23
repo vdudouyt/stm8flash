@@ -283,11 +283,11 @@ int main(int argc, char **argv) {
 
 	// Selecting start addr depending on
 	// specified part and memtype
-	start_addr_specified = true;
 	switch(memtype) {
 		case RAM:
                if(!start_addr_specified) {
                    start = part->ram_start;
+				   start_addr_specified = true;
                }
                if(!bytes_count_specified || bytes_count > part->ram_size) {
                    bytes_count = part->ram_size;
@@ -297,6 +297,7 @@ int main(int argc, char **argv) {
 		case EEPROM:
                if(!start_addr_specified) {
                    start = part->eeprom_start;
+				   start_addr_specified = true;
                }
                if(!bytes_count_specified || bytes_count > part->eeprom_size) {
                    bytes_count = part->eeprom_size;
@@ -306,6 +307,7 @@ int main(int argc, char **argv) {
 		case FLASH:
                if(!start_addr_specified) {
                    start = part->flash_start;
+				   start_addr_specified = true;
                }
                if(!bytes_count_specified || bytes_count > part->flash_size) {
                    bytes_count = part->flash_size;
@@ -315,6 +317,7 @@ int main(int argc, char **argv) {
 		case OPT:
                if(!start_addr_specified) {
                    start = 0x4800;
+				   start_addr_specified = true;
                }
                size_t opt_size = (part->flash_size <= 8*1024 ? 0x40 : 0x80);
                if(!bytes_count_specified || bytes_count > opt_size) {
@@ -323,7 +326,6 @@ int main(int argc, char **argv) {
                fprintf(stderr, "Determine OPT area\r\n");
                break;
 		case UNKNOWN:
-			start_addr_specified = false;
 			break;
 	}
 
