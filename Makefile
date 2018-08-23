@@ -20,7 +20,7 @@ ifneq (,$(strip $(LIBUSB_QUIET)))
 	BASE_CFLAGS += -DSTM8FLASH_LIBUSB_QUIET
 endif
 
-BASE_CFLAGS += --std=gnu99 --pedantic
+BASE_CFLAGS += --std=gnu99 --pedantic -Wall
 
 ifeq ($(PLATFORM),Linux)
 	LIBS = `pkg-config --libs libusb-1.0`
@@ -47,7 +47,7 @@ override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
 
 BIN 		=stm8flash
-OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o
+OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o libespstlink.o
 
 
 .PHONY: all clean install
@@ -58,6 +58,9 @@ $(BIN)$(BIN_SUFFIX): $(OBJECTS)
 all: $(BIN)$(BIN_SUFFIX)
 
 $(OBJECTS): $(wildcard *.h)
+
+libespstlink.so: libespstlink.c libespstlink.h
+	$(CC) -shared $(CFLAGS) -fPIC $< -o $@
 
 clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)

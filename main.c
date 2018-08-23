@@ -69,11 +69,11 @@ programmer_t pgms[] = {
 
 void print_help_and_exit(const char *name, bool err) {
 	FILE *stream = err ? stderr : stdout;
-	fprintf(stream, "Usage: %s [-c programmer] [-S serial] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
 	fprintf(stream, "Options:\n");
 	fprintf(stream, "\t-?             Display this help\n");
 	fprintf(stream, "\t-c programmer  Specify programmer used (stlink, stlinkv2 or espstlink)\n");
-	fprintf(stream, "\t-S serial      Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
+	fprintf(stream, "\t-S serialno    Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
 	fprintf(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
 	fprintf(stream, "\t-p partno      Specify STM8 device\n");
 	fprintf(stream, "\t-l             List supported STM8 devices\n");
@@ -111,14 +111,14 @@ bool is_ext(const char *filename, const char *ext) {
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
-void serial_to_hex(const char *serial, char *serial_hex) {
-	for(int i=0;i<strlen(serial);i++)
+void serialno_to_hex(const char *serialno, char *serialno_hex) {
+	for(int i=0;i<strlen(serialno);i++)
 	{
-		serial_hex += sprintf(serial_hex, "%02X", serial[i]);
+		serialno_hex += sprintf(serialno_hex, "%02X", serialno[i]);
 	}
 }
 
-bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
+bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno) {
 	if (!pgm->usb_vid && !pgm->usb_pid) return(true);
 
 	libusb_device **devs;
@@ -126,8 +126,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
 	int numOfProgrammers = 0;
 	char vendor[32];
 	char device[32];
-	char serial[32];
-	char serial_hex[64];
+	char serialno[32];
+	char serialno_hex[64];
 
 
 	int r;
@@ -153,11 +153,11 @@ bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
 
 	}
 
-	if(numOfProgrammers > 1 || pgm_serial_specified){
+	if(numOfProgrammers > 1 || pgm_serialno_specified){
 
-		// no serial given
-		if(!pgm_serial_specified) {
-			fprintf(stderr, "WARNING: More than one programmer found but no serial given. Programmer 1 will be used:\n");
+		// no serialno given
+		if(!pgm_serialno_specified) {
+			fprintf(stderr, "WARNING: More than one programmer found but no serial number given. Programmer 1 will be used:\n");
 			pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
 		}
 
@@ -175,17 +175,17 @@ bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
 
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
-				libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serial, sizeof(serial));
-				serial_to_hex(serial, serial_hex);
+				libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+				serialno_to_hex(serialno, serialno_hex);
 
-				// print programmer data if no serial specified
-				if(!pgm_serial_specified) {
-					fprintf(stderr, "Programmer %d: %s %s, Serial:%s\n", numOfProgrammers, vendor, device, serial_hex);
+				// print programmer data if no serial number specified
+				if(!pgm_serialno_specified) {
+					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
 				}
 				else
 				{
 					// otherwise check if it's the correct one
-					if(0==strcmp(serial_hex, pgm_serial)) {
+					if(0==strcmp(serialno_hex, pgm_serialno)) {
 						pgm->dev_handle = tempHandle;
 						break;
 					}
@@ -194,8 +194,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serial_specified, char *pgm_serial) {
 			}
 
 		}
-		if(pgm_serial_specified && i==cnt) {
-			fprintf(stderr, "ERROR: No programmer with serial %s found.\n", pgm_serial);
+		if(pgm_serialno_specified && i==cnt) {
+			fprintf(stderr, "ERROR: No programmer with serial number %s found.\n", pgm_serialno);
 			return(false);
 		}
 	}
@@ -244,15 +244,15 @@ int main(int argc, char **argv) {
 	int bytes_count = 0;
 	char filename[256];
 	memset(filename, 0, sizeof(filename));
-	char pgm_serial[64];
-	memset(pgm_serial, 0, sizeof(pgm_serial));
+	char pgm_serialno[64];
+	memset(pgm_serialno, 0, sizeof(pgm_serialno));
 	// Parsing command line
 	char c;
 	action_t action = NONE;
 	fileformat_t fileformat = RAW_BINARY;
 	bool start_addr_specified = false,
 		pgm_specified = false,
-		pgm_serial_specified = false,
+		pgm_serialno_specified = false,
 		part_specified = false,
         bytes_count_specified = false;
 	memtype_t memtype = FLASH;
@@ -270,9 +270,9 @@ int main(int argc, char **argv) {
 				}
 				break;
 			case 'S':
-				pgm_serial_specified = true;
+				pgm_serialno_specified = true;
 				if(NULL != optarg)
-					strncpy(pgm_serial, optarg, sizeof(pgm_serial));
+					strncpy(pgm_serialno, optarg, sizeof(pgm_serialno));
 				break;
 			case 'p':
 				part_specified = true;
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
 		spawn_error("No filename has been specified");
 	if(!action || !start_addr_specified || !strlen(filename))
 		print_help_and_exit(argv[0], true);
-	if(!usb_init(pgm, pgm_serial_specified, pgm_serial))
+	if(!usb_init(pgm, pgm_serialno_specified, pgm_serialno))
 		spawn_error("Couldn't initialize stlink");
 	if(!pgm->open(pgm))
 		spawn_error("Error communicating with MCU. Please check your SWIM connection.");
