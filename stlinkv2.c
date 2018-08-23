@@ -71,19 +71,19 @@
 #if DEBUG
 #undef nSTR
 #define nSTR(name)	[name] = #name + 6
-static const char const * debug_cmd_map[] = {
+static const char * const debug_cmd_map[] = {
 	nSTR(DEBUG_EXIT),
 };
 
 #undef nSTR
 #define nSTR(name)	[name] = #name + 4
-static const char const * dfu_cmd_map[] = {
+static const char * const dfu_cmd_map[] = {
 	nSTR(DFU_EXIT),
 };
 
 #undef nSTR
 #define nSTR(name)	[name] = #name + 5
-static const char const * swim_cmd_map[] = {
+static const char * const swim_cmd_map[] = {
 	nSTR(SWIM_ENTER),
 	nSTR(SWIM_EXIT),
 	nSTR(SWIM_READ_CAP),
@@ -102,7 +102,7 @@ static const char const * swim_cmd_map[] = {
 
 #undef nSTR
 #define nSTR(name)	[name - STLINK_GET_VERSION] = #name + 7
-static const char const * stlink_cmd_map[] = {
+static const char * const stlink_cmd_map[] = {
 	nSTR(STLINK_GET_VERSION),
 	nSTR(STLINK_DEBUG),
 	nSTR(STLINK_DFU),
@@ -111,7 +111,7 @@ static const char const * stlink_cmd_map[] = {
 	nSTR(STLINK_GET_VDD),
 };
 
-static const char const * cmd_to_str(unsigned int cmd) {
+static const char * const cmd_to_str(unsigned int cmd) {
 	static char buf[3];
 
 	cmd -= STLINK_GET_VERSION;
@@ -135,7 +135,7 @@ static const struct {
 	[STLINK_GET_VDD - STLINK_GET_VERSION] = { NULL, 0 },
 };
 
-static const char const * subcmd_to_str(unsigned int cmd, unsigned int subcmd) {
+static const char * const subcmd_to_str(unsigned int cmd, unsigned int subcmd) {
 	static char buf[3];
 
 	cmd -= STLINK_GET_VERSION;
@@ -180,9 +180,9 @@ static void msg_send(programmer_t *pgm, unsigned char *buf, unsigned int length)
 	}
 }
 
-static unsigned int msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int length) {
+static void msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int length) {
 	int n;
-	
+
 	while (length > 0) {
 		n = msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_IN);
 		length -= n;
@@ -195,11 +195,6 @@ static unsigned int msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int
 	}
 }
 
-static void msg_recv0(programmer_t *pgm, unsigned int length) {
-	unsigned char buf[64];
-	msg_recv(pgm, buf, length);
-}
-
 static unsigned int msg_recv_int(programmer_t *pgm, unsigned int length) {
 	unsigned char buf[4] = { 0x00, 0x01, 0x02, 0x03 };
 	msg_recv(pgm, buf, length);
@@ -210,7 +205,6 @@ static unsigned int msg_recv_int(programmer_t *pgm, unsigned int length) {
 
 static unsigned int msg_recv_int8(programmer_t *pgm) {	return msg_recv_int(pgm, 1); }
 static unsigned int msg_recv_int16(programmer_t *pgm) {	return msg_recv_int(pgm, 2); }
-static unsigned int msg_recv_int32(programmer_t *pgm) {	return msg_recv_int(pgm, 4); }
 
 static void stlink2_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, va_list ap) {
 	unsigned char cmd_buf[16];
@@ -324,7 +318,7 @@ static void stlink2_cmd(programmer_t *pgm, unsigned int length, ...) {
 
 bool stlink2_open(programmer_t *pgm) {
 	unsigned char buf[8];
-	unsigned int v, v2;
+	unsigned int v;
 
 	stlink2_cmd(pgm, 1, STLINK_GET_VERSION);
 	msg_recv(pgm, buf, 6);
@@ -410,13 +404,15 @@ static void swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int 
 			byte);
 }
 
-int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
+#if 0
+static void stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
 	swim_cmd(pgm, 10, STLINK_SWIM, SWIM_WRITEMEM,
 			0x00, 0x02,
 			0x00, EX(start),
 			HI(start), LO(start),
 			HI(word), LO(word));
 }
+#endif
 
 static int swim_read_byte(programmer_t *pgm, unsigned int addr) {
 	swim_cmd(pgm, 8, STLINK_SWIM, SWIM_READMEM,

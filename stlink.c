@@ -59,8 +59,8 @@ int stlink_read1(programmer_t *pgm, int count) {
 int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	unsigned char buf[16];
-	int recv = stlink_read(pgm, buf, count);
 	int i, ret = 0;
+	stlink_read(pgm, buf, count);
 	va_start(ap, count);
 	for(i = 0; i < count; i++) {
 		if(buf[i] != va_arg(ap, int))
@@ -395,7 +395,6 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 }
 
 int stlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
-	unsigned char buf[4];
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR); // mov 0x00, CLK_DIVR
@@ -481,7 +480,7 @@ int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 		memcpy(tail, buffer + length1, length2);
 		if(padding) tail[length2] = '\1';
 		int actual;
-		int r = libusb_bulk_transfer(pgm->dev_handle,
+		libusb_bulk_transfer(pgm->dev_handle,
 				(2 | LIBUSB_ENDPOINT_OUT),
 				tail,
 				length2 + padding,
