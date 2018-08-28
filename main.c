@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
 				else {
 					// Start addr is specified explicitely
 					memtype = UNKNOWN;
-					if(sscanf(optarg, "%x", (unsigned*)&start) != strlen(optarg))
+					if(sscanf(optarg, "%x", (unsigned*)&start) != 1)
 						spawn_error("Invalid memory type or location specified");
 					start_addr_specified = true;
 				}
