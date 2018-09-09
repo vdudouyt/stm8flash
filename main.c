@@ -34,6 +34,16 @@ extern int optreset;
 #define VERSION "1.1"
 #define VERSION_NOTES ""
 
+// Later versions of libusb mark libusb_set_debug deprecated and introduce
+// a new libusb_set_option instead. Note that libusb_set_debug is only deprecated,
+// not removed, and that this change occurs between libusb 1.0.21 and 1.0.22.
+// This will fix a compile warning but result in binaries that are not
+// necessarily transferable between systems. libusb 1.0.21 is still in widespread
+// usage.
+#ifdef LIBUSB_OPTION_LOG_LEVEL
+#  define libusb_set_debug(ctx, level) libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, level)
+#endif
+
 programmer_t pgms[] = {
 	{ 	"stlink",
 		0x0483, // USB vid
