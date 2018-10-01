@@ -141,10 +141,8 @@ bool usb_init(programmer_t *pgm) {
 		assert(r == 0);
 	}
 
-#if defined(__APPLE__) || defined(WIN32)
 	r = libusb_claim_interface(pgm->dev_handle, 0);
 	assert(r == 0);
-#endif
 
 	return(true);
 }
