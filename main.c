@@ -49,7 +49,7 @@ programmer_t pgms[] = {
 		0x0483,
 		0x3748,
 		stlink2_open,
-		stlink_close,
+		stlink2_close,
 		stlink2_srst,
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
@@ -281,50 +281,54 @@ int main(int argc, char **argv) {
         }
     }
 
-	if(memtype != UNKNOWN) {
-		// Selecting start addr depending on
-		// specified part and memtype
-		switch(memtype) {
-			case RAM:
-                if(!start_addr_specified) {
-                    start = part->ram_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->ram_size) {
-                    bytes_count = part->ram_size;
-                }
-                fprintf(stderr, "Determine RAM area\r\n");
-				break;
-			case EEPROM:
-                if(!start_addr_specified) {
-                    start = part->eeprom_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->eeprom_size) {
-                    bytes_count = part->eeprom_size;
-                }
-                fprintf(stderr, "Determine EEPROM area\r\n");
-				break;
-			case FLASH:
-                if(!start_addr_specified) {
-                    start = part->flash_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->flash_size) {
-                    bytes_count = part->flash_size;
-                }
-                fprintf(stderr, "Determine FLASH area\r\n");
-				break;
-			case OPT:
-                if(!start_addr_specified) {
-                    start = 0x4800;
-                }
-                size_t opt_size = (part->flash_size <= 8*1024 ? 0x40 : 0x80);
-                if(!bytes_count_specified || bytes_count > opt_size) {
-                    bytes_count = opt_size;
-                }
-                fprintf(stderr, "Determine OPT area\r\n");
-                break;
-		}
-		start_addr_specified = true;
+	// Selecting start addr depending on
+	// specified part and memtype
+	switch(memtype) {
+		case RAM:
+               if(!start_addr_specified) {
+                   start = part->ram_start;
+				   start_addr_specified = true;
+               }
+               if(!bytes_count_specified || bytes_count > part->ram_size) {
+                   bytes_count = part->ram_size;
+               }
+               fprintf(stderr, "Determine RAM area\r\n");
+			break;
+		case EEPROM:
+               if(!start_addr_specified) {
+                   start = part->eeprom_start;
+				   start_addr_specified = true;
+               }
+               if(!bytes_count_specified || bytes_count > part->eeprom_size) {
+                   bytes_count = part->eeprom_size;
+               }
+               fprintf(stderr, "Determine EEPROM area\r\n");
+			break;
+		case FLASH:
+               if(!start_addr_specified) {
+                   start = part->flash_start;
+				   start_addr_specified = true;
+               }
+               if(!bytes_count_specified || bytes_count > part->flash_size) {
+                   bytes_count = part->flash_size;
+               }
+               fprintf(stderr, "Determine FLASH area\r\n");
+			break;
+		case OPT:
+               if(!start_addr_specified) {
+                   start = 0x4800;
+				   start_addr_specified = true;
+               }
+               size_t opt_size = (part->flash_size <= 8*1024 ? 0x40 : 0x80);
+               if(!bytes_count_specified || bytes_count > opt_size) {
+                   bytes_count = opt_size;
+               }
+               fprintf(stderr, "Determine OPT area\r\n");
+               break;
+		case UNKNOWN:
+			break;
 	}
+
 	if(!action)
 		spawn_error("No action has been specified");
 	if(!start_addr_specified)
@@ -484,5 +488,9 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Unlocked device. Option bytes reset to default state.\n");
 		fprintf(stderr, "Bytes written: %d\n", sent);
 	}
+
+	pgm->close(pgm);
+	libusb_close(pgm->dev_handle);
+	libusb_exit(pgm->ctx);
 	return(0);
 }

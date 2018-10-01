@@ -7,12 +7,13 @@
 
 
 PLATFORM=$(shell uname -s)
+DEBUG=0
 
 # Pass RELEASE=anything to build without debug symbols
 ifneq (,$(strip $(RELEASE)))
 	BASE_CFLAGS := -O1
 else
-	BASE_CFLAGS := -g -O0
+	BASE_CFLAGS := -g -O0 -DDEBUG=$(DEBUG)
 endif
 
 # Pass LIBUSB_QUIET=anything to Make to silence debug output from libusb.
