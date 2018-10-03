@@ -58,8 +58,8 @@ programmer_t pgms[] = {
 		"espstlink",
 		0,
 		0,
-		espstlink_open,
-		espstlink_close,
+		espstlink_pgm_open,
+		espstlink_pgm_close,
 		espstlink_srst,
 		espstlink_swim_read_range,
 		espstlink_swim_write_range,
@@ -135,11 +135,19 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 	r = libusb_init(&ctx);
 	if(r < 0) return(false);
 
+	{
 #ifdef STM8FLASH_LIBUSB_QUIET
-	libusb_set_debug(ctx, 0);
+		const int usb_debug_level = 0;
 #else
-	libusb_set_debug(ctx, 3);
+		const int usb_debug_level = 3;
 #endif
+#if defined(LIBUSB_API_VERSION) && (LIBUSB_API_VERSION >= 0x01000106)
+		libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, usb_debug_level);
+#else
+		libusb_set_debug(ctx, usb_debug_level);
+#endif
+	}
+
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
@@ -218,10 +226,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 		assert(r == 0);
 	}
 
-#if defined(__APPLE__) || defined(WIN32)
 	r = libusb_claim_interface(pgm->dev_handle, 0);
 	assert(r == 0);
-#endif
 
 	return(true);
 }
