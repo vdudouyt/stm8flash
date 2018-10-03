@@ -121,11 +121,19 @@ bool usb_init(programmer_t *pgm) {
 	r = libusb_init(&ctx);
 	if(r < 0) return(false);
 
+	{
 #ifdef STM8FLASH_LIBUSB_QUIET
-	libusb_set_debug(ctx, 0);
+		const int usb_debug_level = 0;
 #else
-	libusb_set_debug(ctx, 3);
+		const int usb_debug_level = 3;
 #endif
+#if defined(LIBUSB_API_VERSION) && (LIBUSB_API_VERSION >= 0x01000106)
+		libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, usb_debug_level);
+#else
+		libusb_set_debug(ctx, usb_debug_level);
+#endif
+	}
+
 	cnt = libusb_get_device_list(ctx, &devs);
 	if(cnt < 0) return(false);
 
