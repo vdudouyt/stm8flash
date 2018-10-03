@@ -1,4 +1,4 @@
-stm8link is currently licensed under the GPL, version 2, without the "or later" clauzse.
+stm8link is currently licensed under the GPL, version 2, without the "or later" clause.
 But some newer parts are licensed under GPLv3. These licenses are incompatible. Moving to
 GPLv2 with the "or later" clause should fix this.
 
