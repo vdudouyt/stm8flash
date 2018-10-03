@@ -244,6 +244,11 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
         }
 
         if(memtype == OPT){
+			if(device->read_out_protection_mode == ROP_STM8L && buffer[0]==0xAA && start == 0x4800) {
+				// trying to unlock
+                stlink2_write_byte(pgm, 0xAA, start);
+                TRY(800, HI(stlink2_get_status(pgm)) == 1);
+            }
             int j;
             for(j = 0; j < length; j++){
                 stlink2_write_byte(pgm, buffer[j], start+j);
