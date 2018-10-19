@@ -238,7 +238,7 @@ const stm8_device_t *get_part(const char *name)
 	{
 		const char *e = stm8_devices[i].name;
 		const char *s = name;
-		for(e = stm8_devices[i].name, s = name; *s && (*e == *s || *e == '?'); e++, s++);
+		for(e = stm8_devices[i].name, s = name; *s && (*e == *s || *e == *s + ('a' - 'A') || *e == '?'); e++, s++);
 		if(!*e)
 			return(&stm8_devices[i]);
 	}
