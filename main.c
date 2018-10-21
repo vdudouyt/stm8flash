@@ -1,13 +1,16 @@
 /* stlink/v2 stm8 memory programming utility
    (c) Valentin Dudouyt, 2012 - 2014 */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include <assert.h>
+
+#include <unistd.h>
+
 #include "pgm.h"
 #include "espstlink.h"
 #include "stlink.h"
@@ -238,7 +241,7 @@ const stm8_device_t *get_part(const char *name)
 	{
 		const char *e = stm8_devices[i].name;
 		const char *s = name;
-		for(e = stm8_devices[i].name, s = name; *s && (*e == *s || *e == '?'); e++, s++);
+		for(e = stm8_devices[i].name, s = name; *s && (*e == *s || toupper(*e) == *s || *e == '?'); e++, s++);
 		if(!*e)
 			return(&stm8_devices[i]);
 	}
