@@ -39,6 +39,7 @@ extern int optreset;
 
 programmer_t pgms[] = {
 	{ 	"stlink",
+		STLinkV1,
 		0x0483, // USB vid
 		0x3744, // USB pid
 		stlink_open,
@@ -49,6 +50,7 @@ programmer_t pgms[] = {
 	},
 	{
 		"stlinkv2",
+		STLinkV2,
 		0x0483,
 		0x3748,
 		stlink2_open,
@@ -57,8 +59,31 @@ programmer_t pgms[] = {
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
 	},
-    {
+	{
+		"stlinkv21",
+		STLinkV21,
+		0x0483,
+		0x374b,
+		stlink2_open,
+		stlink_close,
+		stlink2_srst,
+		stlink2_swim_read_range,
+		stlink2_swim_write_range,
+	},
+	{
+		"stlinkv3",
+		STLinkV3,
+		0x0483,
+		0x374f,
+		stlink2_open,
+		stlink_close,
+		stlink2_srst,
+		stlink2_swim_read_range,
+		stlink2_swim_write_range,
+	},
+	{
 		"espstlink",
+		ESP_STLink,
 		0,
 		0,
 		espstlink_pgm_open,
@@ -71,11 +96,27 @@ programmer_t pgms[] = {
 };
 
 void print_help_and_exit(const char *name, bool err) {
+	int i = 0;
 	FILE *stream = err ? stderr : stdout;
 	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
 	fprintf(stream, "Options:\n");
 	fprintf(stream, "\t-?             Display this help\n");
-	fprintf(stream, "\t-c programmer  Specify programmer used (stlink, stlinkv2 or espstlink)\n");
+	fprintf(stream, "\t-c programmer  Specify programmer used (");
+	while (1) {
+		if (pgms[i].name == NULL)
+			break;
+
+		if (i) {
+			if (pgms[i+1].name == NULL)
+				fprintf(stream, " or ");
+			else
+				fprintf(stream, ", ");
+		}
+
+		fprintf(stream, "%s", pgms[i].name);
+		i++;
+	}
+	fprintf(stream, ")\n");
 	fprintf(stream, "\t-S serialno    Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
 	fprintf(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
 	fprintf(stream, "\t-p partno      Specify STM8 device\n");

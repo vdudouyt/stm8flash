@@ -38,7 +38,7 @@ Support table
 -------------
 
   * ST-Link V1: flash/eeprom/opt
-  * ST-Link V2: flash2/eeprom2/opt2
+  * flash2/eeprom2/opt2: ST-LINK/V2, ST-LINK/V2-1 and STLINK-V3
 
 | MCU         | flash | eeprom | opt  | flash2 | eeprom2 | opt2  |
 |-------------|-------|--------|------|--------|---------|-------|
@@ -81,7 +81,7 @@ Support table
 | stm8l151?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?4  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?6  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
-| stm8l152?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l152?8  |  ?    |  ?     |  ?   |  ok     |  ?      |  ?    |
 | stm8l162?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ?    |
 | stm8s003?3  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
