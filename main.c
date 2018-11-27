@@ -493,7 +493,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
 			spawn_error("Failed to read MCU");
 		}
-		if(!(f = fopen(filename, "w")))
+		if(!(f = fopen(filename, (fileformat == RAW_BINARY) ? "wb" : "w")))
 			spawn_error("Failed to open file");
 		switch(fileformat)
 		{
@@ -522,7 +522,7 @@ int main(int argc, char **argv) {
 			spawn_error("Failed to read MCU");
 		}
 
-		if(!(f = fopen(filename, "r")))
+		if(!(f = fopen(filename, (fileformat == RAW_BINARY) ? "rb" : "r")))
 			spawn_error("Failed to open file");
 		unsigned char *buf2 = malloc(bytes_count);
 		if(!buf2) spawn_error("malloc failed");
@@ -558,7 +558,7 @@ int main(int argc, char **argv) {
 
 
 	} else if (action == WRITE) {
-		if(!(f = fopen(filename, "r")))
+		if(!(f = fopen(filename, (fileformat == RAW_BINARY) ? "rb" : "r")))
 			spawn_error("Failed to open file");
 		int bytes_count_align = ((bytes_count-1)/part->flash_block_size+1)*part->flash_block_size;
 		unsigned char *buf = malloc(bytes_count_align);
