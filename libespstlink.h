@@ -27,6 +27,13 @@ typedef struct _esplink_error_t {
 #define ESPSTLINK_ERROR_COMM 3
 #define ESPSTLINK_ERROR_VERSION 4
 
+#define ESPSTLINK_SWIM_ERROR_READ_BIT_TIMEOUT -1
+#define ESPSTLINK_SWIM_ERROR_INVALID_TARGET_ID -2
+#define ESPSTLINK_SWIM_ERROR_PARITY -3
+#define ESPSTLINK_SWIM_ERROR_NACK -4
+#define ESPSTLINK_SWIM_ERROR_SYNC_TIMEOUT_1 -5
+#define ESPSTLINK_SWIM_ERROR_SYNC_TIMEOUT_2 -6
+
 espstlink_error_t *espstlink_get_last_error();
 
 espstlink_t *espstlink_open(const char *device);
