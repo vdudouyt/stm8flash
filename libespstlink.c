@@ -192,8 +192,8 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
   return 1;
 }
 
-bool espstlink_reset(const espstlink_t *pgm, bool input, bool value) {
-  uint8_t cmd[] = {0xFD, input ? 0xFF : value};
+bool espstlink_reset(const espstlink_t *pgm, bool input, bool enable_reset) {
+  uint8_t cmd[] = {0xFD, input ? 0xFF : enable_reset};
 
   write(pgm->fd, cmd, 2);
   return error_check(pgm->fd, cmd[0], NULL, 0);

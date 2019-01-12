@@ -44,14 +44,15 @@ static bool espstlink_write_byte(programmer_t *pgm, uint8_t byte,
 }
 
 static bool espstlink_swim_reconnect(programmer_t *pgm) {
-  // Pull reset low, if the programmer firmware supports this.
   int version = pgm->espstlink->version;
-  if (version > 0 && !espstlink_reset(pgm->espstlink, 0, 0)) return 0;
+
+  // Enter reset state, if the programmer firmware supports this.
+  if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/0, 1)) return 0;
 
   if (!espstlink_swim_entry(pgm->espstlink)) return 0;
 
   // Put the reset pin back into pullup state.
-  if (version > 0 && !espstlink_reset(pgm->espstlink, 1, 0)) return 0;
+  if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/1, 0)) return 0;
 
   if (!espstlink_swim_srst(pgm->espstlink)) return 0;
   usleep(1);

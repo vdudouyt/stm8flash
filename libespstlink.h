@@ -43,8 +43,9 @@ bool espstlink_swim_write(const espstlink_t *pgm, const uint8_t *buffer,
 /**
  * Switch the reset pin.
  * If `input`, the pin is used as an input pin with a pull-up resistor.
- * Otherwise, the pin is used as an output pin, pulled low or high depending on
- * `value`.
+ * Otherwise, the pin is used as an output pin as follows:
+ * value == 0: DEFAULT, sets the pin HIGH
+ * value == 1: RESET, sets the pin LOW
  */
-bool espstlink_reset(const espstlink_t *pgm, bool input, bool value);
+bool espstlink_reset(const espstlink_t *pgm, bool input, bool enable_reset);
 #endif
