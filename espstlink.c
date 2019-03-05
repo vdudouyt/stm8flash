@@ -59,13 +59,18 @@ static bool espstlink_swim_reconnect(programmer_t *pgm) {
   return espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
 }
 
+// Set / Unsets the STALL bit in the DM_CSR2 register. Stops / Resumes the CPU.
+static bool espstlink_stall(programmer_t *pgm, bool stall) {
+  // Set the STALL bit in DM_CSR2, to stop any code from executing.
+  int csr = espstlink_read_byte(pgm, DM_CSR2);
+  if (csr == -1) return 0;
+  return espstlink_write_byte(pgm, stall ? csr | 8 : csr & ~8, DM_CSR2);
+}
+
 static bool espstlink_prepare_for_flash(programmer_t *pgm,
                                         const stm8_device_t *device,
                                         const memtype_t memtype) {
-  // Set the STALL bit in DM_CSR2, to step any code from executing.
-  int csr = espstlink_read_byte(pgm, DM_CSR2);
-  if (csr == -1) return 0;
-  if (!espstlink_write_byte(pgm, csr | 8, DM_CSR2)) return 0;
+  if (!espstlink_stall(pgm, true)) return 0;
 
   // Unlock MASS
   if (memtype == FLASH) {
@@ -128,7 +133,10 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
   return i;
 }
 
-void espstlink_srst(programmer_t *pgm) { espstlink_swim_srst(pgm->espstlink); }
+void espstlink_srst(programmer_t *pgm) {
+  espstlink_swim_srst(pgm->espstlink);
+  espstlink_stall(pgm, false);
+}
 
 bool espstlink_pgm_open(programmer_t *pgm) {
   pgm->espstlink = espstlink_open(pgm->port);
