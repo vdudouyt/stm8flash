@@ -98,8 +98,6 @@ static void espstlink_wait_until_transfer_completes(
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
                               unsigned char *buffer, unsigned int start,
                               unsigned int length) {
-  espstlink_swim_reconnect(pgm);
-
   size_t i = 0;
   for (; i < length;) {
     int current_size = MIN(length - i, 255);
@@ -114,7 +112,6 @@ int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
 int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
                                unsigned char *buffer, unsigned int start,
                                unsigned int length, const memtype_t memtype) {
-  espstlink_swim_reconnect(pgm);
   espstlink_prepare_for_flash(pgm, device, memtype);
 
   size_t i = 0;
