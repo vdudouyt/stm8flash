@@ -45,6 +45,10 @@ endif
 # Respect user-supplied cflags, if any - just put ours in front.
 override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
+# Check if install DESTDIR is undefined
+ifndef DESTDIR
+>---DESTDIR=/usr/local
+endif
 
 BIN 		=stm8flash
 OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o libespstlink.o
@@ -66,6 +70,6 @@ clean:
 	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
 
 install:
-	mkdir -p $(DESTDIR)/usr/local/bin/
-	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/usr/local/bin/
+	mkdir -p $(DESTDIR)/bin/
+	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/bin/
 
