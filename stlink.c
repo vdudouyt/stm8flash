@@ -396,7 +396,6 @@ int stlink_swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int s
 }
 
 int stlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
-	unsigned char buf[4];
 	DEBUG_PRINT("stlink_swim_read_range\n");
 	stlink_init_session(pgm);
 	stlink_swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR); // mov 0x00, CLK_DIVR

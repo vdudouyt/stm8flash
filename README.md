@@ -6,7 +6,7 @@ This is a free and opensource software distributed under the terms of the GNU Ge
 For years, it was the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux.
 
 Since 2018, OpenOCD also offers the basic functionality, and also has support for on-target debugging.
-As of early 2018, stm8flash has wider device support, and better support for memory read/wite operations.
+As of early 2018, stm8flash has wider device support, and better support for memory read/write operations.
 
 
 Synopsis
@@ -81,7 +81,7 @@ Support table
 | stm8l151?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?4  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l152?6  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
-| stm8l152?8  |  ?    |  ?     |  ?   |  ok     |  ?      |  ?    |
+| stm8l152?8  |  ?    |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8l162?8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s001j3  |  ?    |  ?     |  ?   |  ok    |  ok     |  ?    |
 | stm8s003?3  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
