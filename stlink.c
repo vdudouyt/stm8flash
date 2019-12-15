@@ -56,19 +56,6 @@ int stlink_read1(programmer_t *pgm, int count) {
 	return(stlink_read(pgm, buf, count));
 }
 
-int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
-	va_list ap;
-	unsigned char buf[16];
-	int recv = stlink_read(pgm, buf, count);
-	int i, ret = 0;
-	va_start(ap, count);
-	for(i = 0; i < count; i++) {
-		if(buf[i] != va_arg(ap, int))
-			ret++;
-	}
-	return(ret);
-}
-
 unsigned char *pack_int16(uint16_t word, unsigned char *out) {
 	// Filling with bytes in big-endian order
 	out[0] = (word & 0xff00) >> 8;
