@@ -458,7 +458,9 @@ int main(int argc, char **argv) {
                     bytes_count = opt_size;
                 }
                 fprintf(stderr, "Determine OPT area\r\n");
-                break;
+				break;
+			default:
+				break;
 		}
 		start_addr_specified = true;
 	}
