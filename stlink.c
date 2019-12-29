@@ -474,6 +474,7 @@ int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 				length2 + padding,
 				&actual,
 				0);
+                assert(r == LIBUSB_SUCCESS);
 		assert(actual == length2 + padding);
 	}
 	// Reading status
