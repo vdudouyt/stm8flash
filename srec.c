@@ -21,7 +21,7 @@
 // The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
 // The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a 
 // possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
-char line[516];
+char srec_line[516];
 
 /*
  * Checksum for SRECORD.  Add all the bytes from the record length field through the data, and take
@@ -67,13 +67,13 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
   unsigned char temp = ' ';
 
 
-  while(fgets(line, sizeof(line), pFile)) {
+  while(fgets(srec_line, sizeof(srec_line), pFile)) {
     data_record = true; //Assume that the read data is a data record. Set to false if not.
     line_no++;
 
     // Reading chunk header
-    if(sscanf(line, "S%01x%02x%08x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
-      sscanf(line, "%c",&temp);
+    if(sscanf(srec_line, "S%01x%02x%08x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
+      sscanf(srec_line, "%c",&temp);
       if(temp != 'S')
       {
         continue;
@@ -106,7 +106,7 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 
     // Reading chunk data
     for(i = 6 + 2*chunk_type; i < 2*data_len + 8; i +=2) {
-      if(sscanf(&(line[i]), "%02x", &byte) != 1) {
+      if(sscanf(&(srec_line[i]), "%02x", &byte) != 1) {
 	free(buf);
 	ERROR2("Error while parsing SREC at line %d byte %d\n", line_no, i);
       }

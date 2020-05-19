@@ -13,7 +13,7 @@
 // Where LL is the length of the data field and can be as large as 255.  So the maximum size of a record is 9 characters for the 
 // header, 255 * 2 characters for the data, 2 characters for the Checksum, and an additional 2 characters (possibly a Carriage 
 // Return and linefeed.  This is then a total an 9 + 510 + 2 + 2 = 523.
-char line[523];
+char ihex_line[523];
 
 static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk_len, int chunk_addr, int chunk_type) {
 	int sum = chunk_len + (LO(chunk_addr)) + (HI(chunk_addr)) + chunk_type;
@@ -29,17 +29,17 @@ static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk
 int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
 	fseek(pFile, 0, SEEK_SET);
 	unsigned int chunk_len, chunk_addr, chunk_type, i, byte, line_no = 0, greatest_addr = 0, offset = 0;
-	while(fgets(line, sizeof(line), pFile)) {
+	while(fgets(ihex_line, sizeof(ihex_line), pFile)) {
 		line_no++;
 
 		// Strip off Carriage Return at end of line if it exists.
-		if ( line[strlen(line)] == '\r' )
+		if ( ihex_line[strlen(ihex_line)] == '\r' )
 		{
-			line[strlen(line)] = 0;
+			ihex_line[strlen(ihex_line)] = 0;
 		}
 
 		// Reading chunk header
-		if(sscanf(line, ":%02x%04x%02x", &chunk_len, &chunk_addr, &chunk_type) != 3) {
+		if(sscanf(ihex_line, ":%02x%04x%02x", &chunk_len, &chunk_addr, &chunk_type) != 3) {
 			free(buf);
 			ERROR2("Error while parsing IHEX at line %d\n", line_no);
 		}
@@ -47,7 +47,7 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 		if(chunk_type == 2) // Extended Segment Address
 		{
 			unsigned int esa;
-			if(sscanf(&line[9],"%04x",&esa) != 1) {
+			if(sscanf(&ihex_line[9],"%04x",&esa) != 1) {
 				free(buf);
 				ERROR2("Error while parsing IHEX at line %d\n", line_no);
 			}
@@ -56,15 +56,15 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 		if(chunk_type == 4) // Extended Linear Address
 		{
 			unsigned int ela;
-			if(sscanf(&line[9],"%04x",&ela) != 1) {
+			if(sscanf(&ihex_line[9],"%04x",&ela) != 1) {
 				free(buf);
 				ERROR2("Error while parsing IHEX at line %d\n", line_no);
 			}
 			offset = ela * 65536;
 		}
 		
-		for(i = 9; i < strlen(line) - 1; i +=2) {
-			if(sscanf(&(line[i]), "%02x", &byte) != 1) {
+		for(i = 9; i < strlen(ihex_line) - 1; i +=2) {
+			if(sscanf(&(ihex_line[i]), "%02x", &byte) != 1) {
 				free(buf);
 				ERROR2("Error while parsing IHEX at line %d byte %d\n", line_no, i);
 			}
