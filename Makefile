@@ -47,7 +47,7 @@ override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
 # Check if install DESTDIR is undefined
 ifndef DESTDIR
->---DESTDIR=/usr/local
+	DESTDIR=/usr/local
 endif
 
 BIN 		=stm8flash
