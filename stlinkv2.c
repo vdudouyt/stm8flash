@@ -26,6 +26,8 @@ int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned 
 static unsigned int msg_transfer(programmer_t *pgm, unsigned char *buf, unsigned int length, int direction) {
 	int bytes_transferred;
 	int ep = (direction == LIBUSB_ENDPOINT_OUT) ? 2 : 1;
+	if (pgm->type == STLinkV21 || pgm->type == STLinkV3)
+		ep = 1;
 	libusb_bulk_transfer(pgm->dev_handle, ep | direction, buf, length, &bytes_transferred, 0);
 	if(bytes_transferred != length) ERROR2("IO error: expected %d bytes but %d bytes transferred\n", length, bytes_transferred);
 	return bytes_transferred;
@@ -80,6 +82,7 @@ bool stlink2_open(programmer_t *pgm) {
 	switch(msg_recv_int16(pgm)) {
 		case 0x0100:
 		case 0x0001:
+		case 0x0301:
 			// Run initializing sequence
 			stlink2_cmd(pgm, 0xf307, 0); // Start initializing sequence
 			stlink2_cmd(pgm, 0xf400, 0); // Turns the lights on
@@ -244,6 +247,11 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
         }
 
         if(memtype == OPT){
+			if(device->read_out_protection_mode == ROP_STM8L && buffer[0]==0xAA && start == 0x4800) {
+				// trying to unlock
+                stlink2_write_byte(pgm, 0xAA, start);
+                TRY(800, HI(stlink2_get_status(pgm)) == 1);
+            }
             int j;
             for(j = 0; j < length; j++){
                 stlink2_write_byte(pgm, buffer[j], start+j);

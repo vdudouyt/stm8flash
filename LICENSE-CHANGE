@@ -1,0 +1,42 @@
+stm8link is currently licensed under the GPL, version 2, without the "or later" clause.
+But some newer parts are licensed under GPLv3. These licenses are incompatible. Moving to
+GPLv2 with the "or later" clause should fix this.
+
+Authors that have agreed to change from "GPLv2 only" or "GPLv3" to "GPLv2 or later":
+
+Philipp Klaus Krause <pkk@spth.de>
+Ryan Pavlik <ryan@sensics.com>
+Hagen Fritsch <rumpeltux-git@irgendwo.org>
+Lukasz Kordowski <lkordowski@gmail.com>
+Janne Virsunen <janne.virsunen@gmail.com>
+Aram Verstegen <aram.verstegen@gmail.com>
+Valentin Dudouyt <valentin.dudouyt@gmail.com>
+Tim Cameron Ryan <id@timryan.org>
+Miklós Márton <martonmiklosqdev@gmail.com>
+Jan Szumiec <jan.szumiec@gmail.com>
+Tim <cpldcpu@gmail.com>
+Bill Lash <william.lash@gmail.com>
+Erno Szabados <erno.szabados@windowslive.com>
+
+Authors that have not agreed:
+
+
+No reply yet:
+
+
+Those that need to be contacted:
+
+
+Bob Ryan <h36sa@boblaptop.localdomain>
+Ivan A-R <aia@bileter.ru> <i@lolhost.org>
+janezNov <janezNov@users.noreply.github.com> <ziga.stegu@gorenje.com>
+Jose R Padron <elrafapadron@gmail.com>
+KenjutsuGH <pjakruger@yahoo.com>
+lachlan Audas <laudas1@gmail.com>
+Mario Cianciolo <mr.udda@gmail.com>
+Nguyen Huu Hoa <huuhoa@gmail.com>
+plumbum <ivan@tuxotronic.org>
+Ratzzo <ignacio.4096@gmail.com>
+udda <udda@users.noreply.github.com>
+Vladimir Koutny <vladimir.koutny@streamunlimited.com>
+

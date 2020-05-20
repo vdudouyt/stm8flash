@@ -1,24 +1,14 @@
 #ifndef __PGM_H
 #define __PGM_H
 
-#ifdef __FreeBSD__
- #include <libusb.h>
-#endif
-
-#ifdef __linux__
-  #include <endian.h>
- #include <libusb.h>
- #endif
-
-#ifdef __APPLE__
- #include <libusb.h>
-#endif
-
 #if defined(WIN32) || defined(__CYGWIN__)
  #include <libusb-1.0/libusb.h>
+#else
+ #include <libusb.h>
 #endif
 
 #include "stm8.h"
+#include "libespstlink.h"
 
 typedef enum {
     UNKNOWN,
@@ -36,9 +26,18 @@ typedef enum {
     UNLOCK
 } action_t;
 
+typedef enum {
+	STLinkV1,
+	STLinkV2,
+	STLinkV21,
+	STLinkV3,
+	ESP_STLink
+} programmer_type_t;
+
 typedef struct programmer_s {
 	/* Info */
 	const char *name;
+	programmer_type_t type;
 	unsigned int usb_vid;
 	unsigned int usb_pid;
 
@@ -52,8 +51,13 @@ typedef struct programmer_s {
 	/* Private */
 	libusb_device_handle *dev_handle;
 	libusb_context *ctx;
+
 	unsigned int msg_count; // debugging only
 	unsigned int out_msg_size; // stlink/stlinkv2
+
+	/* Data for espstlink module. */
+        espstlink_t * espstlink;
+	const char *port;
 } programmer_t;
 
 typedef bool (*pgm_open_cb)(programmer_t *);
