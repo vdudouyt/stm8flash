@@ -95,6 +95,44 @@ espstlink_t *espstlink_open(const char *device) {
   return pgm;
 }
 
+static const char *command_name(uint8_t command) {
+  switch (command) {
+    case 0:
+      return "SOFT_RESET";
+    case 1:
+      return "READ";
+    case 2:
+      return "WRITE";
+    case 0xFD:
+      return "HARD_RESET";
+    case 0xFE:
+      return "SWIM_ENTRY";
+    case 0xFF:
+      return "GET_VERSION";
+    default:
+      return "unknown (invalid)";
+  }
+}
+
+static const char *swim_error_name(int code) {
+  switch (-code) {
+    case ESPSTLINK_SWIM_ERROR_READ_BIT_TIMEOUT:
+      return "READ_BIT_TIMEOUT";
+    case ESPSTLINK_SWIM_ERROR_INVALID_TARGET_ID:
+      return "INVALID_TARGET_ID";
+    case ESPSTLINK_SWIM_ERROR_PARITY:
+      return "PARITY";
+    case ESPSTLINK_SWIM_ERROR_NACK:
+      return "NACK";
+    case ESPSTLINK_SWIM_ERROR_SYNC_TIMEOUT_1:
+      return "SYNC_TIMEOUT_1";
+    case ESPSTLINK_SWIM_ERROR_SYNC_TIMEOUT_2:
+      return "SYNC_TIMEOUT_2";
+    default:
+      return "unknown (invalid)";
+  }
+}
+
 static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
                         size_t size) {
   uint8_t buf[4];
@@ -112,8 +150,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
   }
   len = read(fd, buf + 1, 1);
   if (len < 1) {
-    set_error(ESPSTLINK_ERROR_DATA, "Device didn't finish command 0x%02x: %s\n",
-              buf[0], strerror(errno));
+    set_error(ESPSTLINK_ERROR_DATA,
+              "Device didn't finish command 0x%02x (%s): %s\n", buf[0],
+              command_name(buf[0]), strerror(errno));
     return 0;
   }
   if (buf[1] == 0) {
@@ -124,9 +163,9 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
         if (len < 1) {
           set_error(
               ESPSTLINK_ERROR_DATA,
-              "Incomplete response for command 0x%02x: expected %d bytes, "
+              "Incomplete response for command 0x%02x (%s): expected %d bytes, "
               "but got %d bytes (%s)\n",
-              buf[0], size, len, strerror(errno));
+              buf[0], command_name(buf[0]), size, len, strerror(errno));
           return 0;
         }
         total += len;
@@ -137,20 +176,21 @@ static bool error_check(int fd, uint8_t command, uint8_t *resp_buf,
   if (buf[1] == 0xFF) {
     len = read(fd, buf + 2, 2);
     if (len < 2) {
-      set_error(
-          ESPSTLINK_ERROR_DATA,
-          "Device didn't finish sending error code for command 0x%02x: %s\n",
-          buf[0], strerror(errno));
+      set_error(ESPSTLINK_ERROR_DATA,
+                "Device didn't finish sending error code for command 0x%02x "
+                "(%s): %s\n",
+                buf[0], command_name(buf[0]), strerror(errno));
       return 0;
     }
     int code = buf[2] << 8 | buf[3];
-    set_error(ESPSTLINK_ERROR_COMM, "Command 0x%02x failed with code: 0x%02x\n",
-              buf[0], code);
+    set_error(ESPSTLINK_ERROR_COMM,
+              "Command 0x%02x (%s) failed with code: 0x%02x (%s)\n", buf[0],
+              command_name(buf[0]), code, swim_error_name(code));
     error.device_code = code;
   } else {
     set_error(ESPSTLINK_ERROR_DATA,
-              "Unexpected error code for command 0x%02x: 0x%02x\n", buf[0],
-              buf[1]);
+              "Unexpected error code for command 0x%02x (%s): 0x%02x\n", buf[0],
+              command_name(buf[0]), buf[1]);
     error.data[0] = buf[0];
     error.data[1] = buf[1];
     error.data_len = 2 + read(fd, &error.data[2], sizeof(error.data) - 2);
@@ -192,8 +232,8 @@ bool espstlink_swim_entry(const espstlink_t *pgm) {
   return 1;
 }
 
-bool espstlink_reset(const espstlink_t *pgm, bool input, bool value) {
-  uint8_t cmd[] = {0xFD, input ? 0xFF : value};
+bool espstlink_reset(const espstlink_t *pgm, bool input, bool enable_reset) {
+  uint8_t cmd[] = {0xFD, input ? 0xFF : enable_reset};
 
   write(pgm->fd, cmd, 2);
   return error_check(pgm->fd, cmd[0], NULL, 0);

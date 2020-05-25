@@ -9,20 +9,6 @@
 #include "error.h"
 #include "byte_utils.h"
 
-// A SRECORD has one of the following formats
-// SXLLAAAADDDD....DDCC
-// SXLLAAAAAADDDD....DDCC
-// SXLLAAAAAAAADDDD....DDCC
-// Where S is the letter 'S', X is a single digit indicating the record type, LL is the length of the
-// record from the start of the address field through the checksum (i.e. the length of the rest of the
-// record), AAAA[AA[AA]] is the address field and can be 16, 24 or 32 bits depending on the record type,
-// DD is the data for the record (and optional for an S0 record, and not present in some other records),
-// anc CC is the ones complement chechsum of the bytes starting at LL up to the last DD byte.
-// The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
-// The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a 
-// possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
-char line[516];
-
 /*
  * Checksum for SRECORD.  Add all the bytes from the record length field through the data, and take
  * the ones complement.  This includes the address field, which for SRECORDs can be 2 bytes, 3 bytes or
@@ -56,7 +42,22 @@ static bool is_data_type(unsigned int chunk_type)
 
 
 int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
+  // A SRECORD has one of the following formats
+  // SXLLAAAADDDD....DDCC
+  // SXLLAAAAAADDDD....DDCC
+  // SXLLAAAAAAAADDDD....DDCC
+  // Where S is the letter 'S', X is a single digit indicating the record type, LL is the length of the
+  // record from the start of the address field through the checksum (i.e. the length of the rest of the
+  // record), AAAA[AA[AA]] is the address field and can be 16, 24 or 32 bits depending on the record type,
+  // DD is the data for the record (and optional for an S0 record, and not present in some other records),
+  // anc CC is the ones complement chechsum of the bytes starting at LL up to the last DD byte.
+  // The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
+  // The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a
+  // possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
+  static char line[516];
+
   fseek(pFile, 0, SEEK_SET);
+
   unsigned int chunk_len, chunk_addr, chunk_type, i, byte, line_no = 0, greatest_addr = 0;
   unsigned int number_of_records = 0;
 
@@ -65,7 +66,6 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
   unsigned int expected_data_records = 0;
   unsigned int data_len = 0;
   unsigned char temp = ' ';
-
 
   while(fgets(line, sizeof(line), pFile)) {
     data_record = true; //Assume that the read data is a data record. Set to false if not.

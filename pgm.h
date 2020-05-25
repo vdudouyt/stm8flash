@@ -1,7 +1,7 @@
 #ifndef __PGM_H
 #define __PGM_H
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
  #include <libusb-1.0/libusb.h>
 #else
  #include <libusb.h>

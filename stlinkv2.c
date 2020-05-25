@@ -122,7 +122,11 @@ void stlink2_init_session(programmer_t *pgm) {
 	stlink2_cmd(pgm, 0xf408, 0);
 	TRY(8, stlink2_get_status(pgm) == 0);
 
+	// This is probably a bug: Should set the STALL bit (write 8 instead of
+	// A0) What is currently being done: DM_CSR2 (0x7f99): Reserved (0x80) |
+	// Software breakpoint control (0x20)
 	stlink2_write_and_read_byte(pgm, 0xa0, 0x7f99);
+
 	stlink2_cmd(pgm, 0xf40c, 0);
 	msg_recv_int8(pgm); // 0x08 (or 0x0a if used stlink2_write_byte() instead)
 }

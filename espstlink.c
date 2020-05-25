@@ -44,27 +44,33 @@ static bool espstlink_write_byte(programmer_t *pgm, uint8_t byte,
 }
 
 static bool espstlink_swim_reconnect(programmer_t *pgm) {
-  // Pull reset low, if the programmer firmware supports this.
   int version = pgm->espstlink->version;
-  if (version > 0 && !espstlink_reset(pgm->espstlink, 0, 0)) return 0;
+
+  // Enter reset state, if the programmer firmware supports this.
+  if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/0, 1)) return 0;
 
   if (!espstlink_swim_entry(pgm->espstlink)) return 0;
 
   // Put the reset pin back into pullup state.
-  if (version > 0 && !espstlink_reset(pgm->espstlink, 1, 0)) return 0;
+  if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/1, 0)) return 0;
 
   if (!espstlink_swim_srst(pgm->espstlink)) return 0;
   usleep(1);
   return espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
 }
 
+// Set / Unsets the STALL bit in the DM_CSR2 register. Stops / Resumes the CPU.
+static bool espstlink_stall(programmer_t *pgm, bool stall) {
+  // Set the STALL bit in DM_CSR2, to stop any code from executing.
+  int csr = espstlink_read_byte(pgm, DM_CSR2);
+  if (csr == -1) return 0;
+  return espstlink_write_byte(pgm, stall ? csr | 8 : csr & ~8, DM_CSR2);
+}
+
 static bool espstlink_prepare_for_flash(programmer_t *pgm,
                                         const stm8_device_t *device,
                                         const memtype_t memtype) {
-  // Set the STALL bit in DM_CSR2, to step any code from executing.
-  int csr = espstlink_read_byte(pgm, DM_CSR2);
-  if (csr == -1) return 0;
-  if (!espstlink_write_byte(pgm, csr | 8, DM_CSR2)) return 0;
+  if (!espstlink_stall(pgm, true)) return 0;
 
   // Unlock MASS
   if (memtype == FLASH) {
@@ -92,8 +98,6 @@ static void espstlink_wait_until_transfer_completes(
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
                               unsigned char *buffer, unsigned int start,
                               unsigned int length) {
-  espstlink_swim_reconnect(pgm);
-
   size_t i = 0;
   for (; i < length;) {
     int current_size = MIN(length - i, 255);
@@ -108,7 +112,6 @@ int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
 int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
                                unsigned char *buffer, unsigned int start,
                                unsigned int length, const memtype_t memtype) {
-  espstlink_swim_reconnect(pgm);
   espstlink_prepare_for_flash(pgm, device, memtype);
 
   size_t i = 0;
@@ -127,7 +130,10 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
   return i;
 }
 
-void espstlink_srst(programmer_t *pgm) { espstlink_swim_srst(pgm->espstlink); }
+void espstlink_srst(programmer_t *pgm) {
+  espstlink_swim_srst(pgm->espstlink);
+  espstlink_stall(pgm, false);
+}
 
 bool espstlink_pgm_open(programmer_t *pgm) {
   pgm->espstlink = espstlink_open(pgm->port);

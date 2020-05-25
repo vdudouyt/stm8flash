@@ -8,13 +8,6 @@
 #include "error.h"
 #include "byte_utils.h"
 
-// a record in intel hex looks like 
-// :LLXXXXTTDDDD....DDCC
-// Where LL is the length of the data field and can be as large as 255.  So the maximum size of a record is 9 characters for the 
-// header, 255 * 2 characters for the data, 2 characters for the Checksum, and an additional 2 characters (possibly a Carriage 
-// Return and linefeed.  This is then a total an 9 + 510 + 2 + 2 = 523.
-char line[523];
-
 static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk_len, int chunk_addr, int chunk_type) {
 	int sum = chunk_len + (LO(chunk_addr)) + (HI(chunk_addr)) + chunk_type;
 	int i;
@@ -27,8 +20,17 @@ static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk
 }
 
 int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
+	// a record in intel hex looks like
+	// :LLXXXXTTDDDD....DDCC
+	// Where LL is the length of the data field and can be as large as 255.  So the maximum size of a record is 9 characters for the 
+	// header, 255 * 2 characters for the data, 2 characters for the Checksum, and an additional 2 characters (possibly a Carriage 
+	// Return and linefeed.  This is then a total an 9 + 510 + 2 + 2 = 523.
+	static char line[523];
+
 	fseek(pFile, 0, SEEK_SET);
+
 	unsigned int chunk_len, chunk_addr, chunk_type, i, byte, line_no = 0, greatest_addr = 0, offset = 0;
+
 	while(fgets(line, sizeof(line), pFile)) {
 		line_no++;
 
