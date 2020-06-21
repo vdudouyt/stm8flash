@@ -132,7 +132,7 @@ void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned in
 			fprintf(pFile, ":02000004%04X%02X\n",cur_ela,checksum(ela_bytes,2,2,0,4));
 		}
 		// Write the data record
-		fprintf(pFile, ":%02X%04X00",chunk_len,chunk_start);
+		fprintf(pFile, ":%02X%04X00",chunk_len,chunk_start & 0xffff);
 		for(i = chunk_start - start; i < (chunk_start + chunk_len - start); i++)
 		{
 			fprintf(pFile, "%02X",buf[i]);
