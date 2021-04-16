@@ -1,12 +1,32 @@
-/* stlink/v2 stm8 memory programming utility
-   (c) Valentin Dudouyt, 2012 - 2014 */
+/***************************************************************************
+ *   Intel hex read and write utility functions                            *
+ *                                                                         *
+ *   Copyright (c) Valentin Dudouyt, 2004 2012 - 2014                      *
+ *   Copyright (c) Philipp Klaus Krause, 2021                              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ihex.h"
-#include "error.h"
-#include "byte_utils.h"
+
+#define HI(x) (((x) & 0xff00) >> 8)
+#define LO(x) ((x) & 0xff)
 
 static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk_len, int chunk_addr, int chunk_type) {
 	int sum = chunk_len + (LO(chunk_addr)) + (HI(chunk_addr)) + chunk_type;
@@ -16,7 +36,7 @@ static unsigned char checksum(unsigned char *buf, unsigned int length, int chunk
 	}
 
 	int complement = (~sum + 1);
-	return complement & 0xff;
+	return(complement & 0xff);
 }
 
 int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
@@ -35,7 +55,7 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 		line_no++;
 
 		// Strip off Carriage Return at end of line if it exists.
-		if ( line[strlen(line)] == '\r' )
+		if (line[strlen(line)] == '\r')
 		{
 			line[strlen(line)] = 0;
 		}
@@ -43,7 +63,8 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 		// Reading chunk header
 		if(sscanf(line, ":%02x%04x%02x", &chunk_len, &chunk_addr, &chunk_type) != 3) {
 			free(buf);
-			ERROR2("Error while parsing IHEX at line %d\n", line_no);
+			fprintf(stderr, "Error while parsing IHEX at line %d\n", line_no);
+			return(-1);
 		}
 		// Reading chunk data
 		if(chunk_type == 2) // Extended Segment Address
@@ -51,7 +72,8 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 			unsigned int esa;
 			if(sscanf(&line[9],"%04x",&esa) != 1) {
 				free(buf);
-				ERROR2("Error while parsing IHEX at line %d\n", line_no);
+				fprintf(stderr, "Error while parsing IHEX at line %d\n", line_no);
+				return(-1);
 			}
 			offset = esa * 16;
 		}
@@ -60,7 +82,8 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 			unsigned int ela;
 			if(sscanf(&line[9],"%04x",&ela) != 1) {
 				free(buf);
-				ERROR2("Error while parsing IHEX at line %d\n", line_no);
+				fprintf(stderr, "Error while parsing IHEX at line %d\n", line_no);
+				return(-1);
 			}
 			offset = ela * 65536;
 		}
@@ -68,7 +91,8 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 		for(i = 9; i < strlen(line) - 1; i +=2) {
 			if(sscanf(&(line[i]), "%02x", &byte) != 1) {
 				free(buf);
-				ERROR2("Error while parsing IHEX at line %d byte %d\n", line_no, i);
+				fprintf(stderr, "Error while parsing IHEX at line %d byte %d\n", line_no, i);
+				return(-1);
 			}
 			if(chunk_type != 0x00) {
 				// The only data records have to be processed
@@ -80,11 +104,13 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 			}
 			if((chunk_addr + offset) < start) {
 				free(buf);
-				ERROR2("Address %04x is out of range at line %d\n", chunk_addr, line_no);
+				fprintf(stderr, "Address %04x is out of range at line %d\n", chunk_addr, line_no);
+				return(-1);
 			}
 			if(chunk_addr + offset + chunk_len > end) {
 				free(buf);
-				ERROR2("Address %04x + %d is out of range at line %d\n", chunk_addr, chunk_len, line_no);
+				fprintf(stderr, "Address %04x + %d is out of range at line %d\n", chunk_addr, chunk_len, line_no);
+				return(-1);
 			}
 			if(chunk_addr + offset + chunk_len > greatest_addr) {
 				greatest_addr = chunk_addr + offset + chunk_len;
@@ -96,7 +122,7 @@ int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	return(greatest_addr - start);
 }
 
-void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
+int ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
 	unsigned int chunk_len, chunk_start, i;
 	int cur_ela = 0; 
 	// If any address is above the first 64k, cause an initial ELA record to be written
@@ -129,20 +155,36 @@ void ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned in
 			cur_ela = chunk_start >> 16;
 			ela_bytes[0] = HI(cur_ela);
 			ela_bytes[1] = LO(cur_ela);
-			fprintf(pFile, ":02000004%04X%02X\n",cur_ela,checksum(ela_bytes,2,2,0,4));
+			if(fprintf(pFile, ":02000004%04X%02X\n",cur_ela,checksum(ela_bytes,2,2,0,4)) < 0)
+			{
+				fprintf(stderr, "I/O error during IHEX write\n");
+				return(-1);
+			}
 		}
 		// Write the data record
 		fprintf(pFile, ":%02X%04X00",chunk_len,chunk_start & 0xffff);
 		for(i = chunk_start - start; i < (chunk_start + chunk_len - start); i++)
+			if(fprintf(pFile, "%02X",buf[i]) < 0)
+			{
+				fprintf(stderr, "I/O error during IHEX write\n");
+				return(-1);
+			}
+		if(fprintf(pFile, "%02X\n", checksum( &buf[chunk_start - start], chunk_len, chunk_len, chunk_start, 0)) < 0)
 		{
-			fprintf(pFile, "%02X",buf[i]);
+			fprintf(stderr, "I/O error during IHEX write\n");
+			return(-1);
 		}
-		fprintf(pFile, "%02X\n", checksum( &buf[chunk_start - start], chunk_len, chunk_len, chunk_start, 0));
 
 		
 		chunk_start += chunk_len;
 	}
 	// Add the END record
-	fprintf(pFile,":00000001FF\n");
+	if(fprintf(pFile,":00000001FF\n") < 0)
+	{
+		fprintf(stderr, "I/O error during IHEX write\n");
+		return(-1);
+	}
+	
+	return(0);
 }
 

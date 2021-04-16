@@ -13,3 +13,4 @@ void format_int(unsigned char *out, unsigned int in, unsigned char length, unsig
 int load_int(unsigned char *buf, unsigned char length, unsigned char endianess);
 
 #endif
+

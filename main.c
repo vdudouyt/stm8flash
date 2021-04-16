@@ -498,7 +498,8 @@ int main(int argc, char **argv) {
 		switch(fileformat)
 		{
 		case INTEL_HEX:
-			ihex_write(f, buf, start, start+bytes_count);
+			if(ihex_write(f, buf, start, start+bytes_count) < 0)
+			  exit(-1);
 			break;
 		case MOTOROLA_S_RECORD:
 			srec_write(f, buf, start, start+bytes_count);
@@ -531,7 +532,8 @@ int main(int argc, char **argv) {
 		switch(fileformat)
 		{
 		case INTEL_HEX:
-			bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count);
+			if((bytes_to_verify = ihex_read(f, buf2, start, start + bytes_count)) < 0)
+			  exit(-1);
 			break;
 		case MOTOROLA_S_RECORD:
 			bytes_to_verify = srec_read(f, buf2, start, start + bytes_count);
@@ -570,7 +572,8 @@ int main(int argc, char **argv) {
 		switch(fileformat)
 		{
 		case INTEL_HEX:
-			bytes_to_write = ihex_read(f, buf, start, start + bytes_count);
+			if((bytes_to_write = ihex_read(f, buf, start, start + bytes_count)) < 0)
+			  exit(-1);
 			break;
 		case MOTOROLA_S_RECORD:
 			bytes_to_write = srec_read(f, buf, start, start + bytes_count);
