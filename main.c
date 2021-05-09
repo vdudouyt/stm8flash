@@ -402,69 +402,68 @@ int main(int argc, char **argv) {
 	if(!part)
 		spawn_error("No part has been specified");
 
-    // Try define memory type by address
+	// Try define memory type by address
 	if(memtype == UNKNOWN) {
-        if((start >= 0x4800) && (start < 0x4880)) {
-            memtype = OPT;
-        }
-        if((start >= part->ram_start) && (start < part->ram_start + part->ram_size)) {
-            memtype = RAM;
-        }
-        else if((start >= part->flash_start) && (start < part->flash_start + part->flash_size)) {
-            memtype = FLASH;
-        }
-        else if((start >= part->eeprom_start) && (start < part->eeprom_start + part->eeprom_size)) {
-            memtype = EEPROM;
-        }
-    }
-
-	if(memtype != UNKNOWN) {
-		// Selecting start addr depending on
-		// specified part and memtype
-		switch(memtype) {
-			case RAM:
-                if(!start_addr_specified) {
-                    start = part->ram_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->ram_size) {
-                    bytes_count = part->ram_size;
-                }
-                fprintf(stderr, "Determine RAM area\r\n");
-				break;
-			case EEPROM:
-                if(!start_addr_specified) {
-                    start = part->eeprom_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->eeprom_size) {
-                    bytes_count = part->eeprom_size;
-                }
-                fprintf(stderr, "Determine EEPROM area\r\n");
-				break;
-			case FLASH:
-                if(!start_addr_specified) {
-                    start = part->flash_start;
-                }
-                if(!bytes_count_specified || bytes_count > part->flash_size) {
-                    bytes_count = part->flash_size;
-                }
-                fprintf(stderr, "Determine FLASH area\r\n");
-				break;
-			case OPT:
-                if(!start_addr_specified) {
-                    start = 0x4800;
-                }
-                size_t opt_size = (part->flash_size <= 8*1024 ? 0x40 : 0x80);
-                if(!bytes_count_specified || bytes_count > opt_size) {
-                    bytes_count = opt_size;
-                }
-                fprintf(stderr, "Determine OPT area\r\n");
-                break;
-			case UNKNOWN:
-				assert(0);
-				break;
+		if((start >= 0x4800) && (start < 0x4880)) {
+			memtype = OPT;
 		}
-		start_addr_specified = true;
+		if((start >= part->ram_start) && (start < part->ram_start + part->ram_size)) {
+			memtype = RAM;
+		}
+		else if((start >= part->flash_start) && (start < part->flash_start + part->flash_size)) {
+			memtype = FLASH;
+		}
+		else if((start >= part->eeprom_start) && (start < part->eeprom_start + part->eeprom_size)) {
+			memtype = EEPROM;
+		}
 	}
+
+	switch (memtype) {
+	case RAM:
+		if(!start_addr_specified) {
+			start = part->ram_start;
+			start_addr_specified = true;
+		}
+		if(!bytes_count_specified || bytes_count > part->ram_size) {
+			bytes_count = part->ram_size;
+		}
+		fprintf(stderr, "Determine RAM area\r\n");
+		break;
+	case EEPROM:
+		if(!start_addr_specified) {
+			start = part->eeprom_start;
+			start_addr_specified = true;
+		}
+		if(!bytes_count_specified || bytes_count > part->eeprom_size) {
+			bytes_count = part->eeprom_size;
+		}
+		fprintf(stderr, "Determine EEPROM area\r\n");
+		break;
+	case FLASH:
+		if(!start_addr_specified) {
+			start = part->flash_start;
+			start_addr_specified = true;
+		}
+		if(!bytes_count_specified || bytes_count > part->flash_size) {
+			bytes_count = part->flash_size;
+		}
+		fprintf(stderr, "Determine FLASH area\r\n");
+		break;
+	case OPT:
+		if(!start_addr_specified) {
+			start = 0x4800;
+			start_addr_specified = true;
+		}
+		size_t opt_size = (part->flash_size <= 8*1024 ? 0x40 : 0x80);
+		if(!bytes_count_specified || bytes_count > opt_size) {
+			bytes_count = opt_size;
+		}
+		fprintf(stderr, "Determine OPT area\r\n");
+		break;
+	case UNKNOWN:
+		;
+	}
+
 	if(!action)
 		spawn_error("No action has been specified");
 	if(!start_addr_specified)
