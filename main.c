@@ -459,6 +459,9 @@ int main(int argc, char **argv) {
                 }
                 fprintf(stderr, "Determine OPT area\r\n");
                 break;
+			case UNKNOWN:
+				assert(0);
+				break;
 		}
 		start_addr_specified = true;
 	}

@@ -60,6 +60,7 @@ int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	unsigned char buf[16];
 	int recv = stlink_read(pgm, buf, count);
+	(void)recv;
 	int i, ret = 0;
 	va_start(ap, count);
 	for(i = 0; i < count; i++) {
@@ -487,6 +488,7 @@ int stlink_swim_write_block(programmer_t *pgm, unsigned char *buffer,
 				length2 + padding,
 				&actual,
 				0);
+		assert(r == 0);
 		assert(actual == length2 + padding);
 	}
 	// Reading status
