@@ -59,8 +59,7 @@ int stlink_read1(programmer_t *pgm, int count) {
 int stlink_read_and_cmp(programmer_t *pgm, int count, ...) {
 	va_list ap;
 	unsigned char buf[16];
-	int recv = stlink_read(pgm, buf, count);
-	(void)recv;
+	stlink_read(pgm, buf, count);
 	int i, ret = 0;
 	va_start(ap, count);
 	for(i = 0; i < count; i++) {
