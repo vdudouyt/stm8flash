@@ -356,7 +356,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L,
         REGS_STM8L
     },
     {

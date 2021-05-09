@@ -423,11 +423,11 @@ int main(int argc, char **argv) {
 		if(!start_addr_specified) {
 			start = part->ram_start;
 			start_addr_specified = true;
-                }
-                if(!bytes_count_specified || bytes_count > part->ram_size) {
+		}
+		if(!bytes_count_specified || bytes_count > part->ram_size) {
 			bytes_count = part->ram_size;
-                }
-                fprintf(stderr, "Determine RAM area\r\n");
+		}
+		fprintf(stderr, "Determine RAM area\r\n");
 		break;
 	case EEPROM:
 		if(!start_addr_specified) {
