@@ -92,7 +92,9 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	if (chunk_len != 3) { // Length field must contain a 3 to be a valid S5 record.
 	  ERROR2("Error while parsing S5 Record at line %d\n", line_no);
 	}
-	expected_data_records = chunk_addr; //The expected total number of data records is saved in S503<addr> field.
+	//The expected total number of data records is saved in S503<addr> field.
+	//Address is only 2 byte long and checksum is also read as part of the address, so we need to strip it.
+	expected_data_records = chunk_addr >> 8;
       }
     else if(is_data_type(chunk_type))
       {
