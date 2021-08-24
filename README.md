@@ -9,6 +9,12 @@ Since 2018, OpenOCD also offers the basic functionality, and also has support fo
 As of early 2018, stm8flash has wider device support, and better support for memory read/write operations.
 
 
+Install
+--------
+sudo apt-get install -y pkg-config libusb-1.0-0-dev
+sudo make
+sudo make install
+
 Synopsis
 --------
 
