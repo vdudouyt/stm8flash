@@ -88,8 +88,8 @@ Support table
 | stm8s005?6  |  ok   |  ?     |  ok  |  ok    |  ok     |  ok   |
 | stm8s007c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s103f2  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8s103?3  |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
-| stm8s105?4  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ?    |
+| stm8s103?3  |  ok   |  ?     |  ?   |  ok    |  ?      |  ok   |
+| stm8s105?4  |  ok   |  FAIL  |  ?   |  ok    |  ok     |  ok   |
 | stm8s105?6  |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8s207c8  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8s207cb  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
