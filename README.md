@@ -69,7 +69,7 @@ Support table
 | stm8l001j3  |  ?    |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l050j3  |  ok   |  ?     |  ok  |  ok    |  ok     |  ok   |
 | stm8l051f3  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
-| stm8l052c6  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
+| stm8l052c6  |  ok   |  ?     |  ?   |  ok    |  ?      |  ?    |
 | stm8l052r8  |  ok   |  ?     |  ?   |  ?     |  ?      |  ?    |
 | stm8l101f1  |  ?    |  no    |  ?   |  ?     |  no     |  ?    |
 | stm8l101?2  |  ?    |  no    |  ?   |  ?     |  no     |  ?    |
