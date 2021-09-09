@@ -12,19 +12,150 @@
 #include "try.h"
 #include "byte_utils.h"
 #include "stlinkv2.h"
+#include "utils.h"
+
+
+/* Use high speed SWIM mode.
+ * This changes the ratio used in bit signalling from 2:20 to 2:8. Since it neither
+ * changes the clock rate nor changes the smallest interval between edges there
+ * seems little reason not to always use it.
+ */
+#define USE_HIGH_SPEED          1
+
+/* Only write differences to the target.
+ * If set to 1 then a write operation first reads the relevant memory from the
+ * target then only writes back those blocks that contain actual changes thus
+ * sparing flash from unnecessary erase-and-rewrite cycles.
+ */
+#define ONLY_WRITE_DIFFS        1
+
+
+#define MAX_SWIM_ERRORS         8
+
+#define STLINK_SWIM_OK          0x00
+#define STLINK_SWIM_BUSY        0x01
+#define STLINK_SWIM_NO_RESPONSE 0x04 // Target did not respond. SWIM not active?
+#define STLINK_SWIM_BAD_STATE   0x05 // ??
+
+#define STLINK_MODE_DFU	        0x00
+#define STLINK_MODE_MASS        0x01
+#define STLINK_MODE_DEBUG       0x02
+#define STLINK_MODE_SWIM        0x03
+#define STLINK_MODE_BOOTLOADER  0x04
+
+#define STLINK_GET_VERSION      0xf1
+#define STLINK_DEBUG            0xf2
+#define STLINK_DFU              0xf3
+#define STLINK_SWIM             0xf4
+#define STLINK_GET_CURRENT_MODE 0xf5
+#define STLINK_GET_VDD          0xf7
+
+#define DEBUG_EXIT              0x21
+#define DFU_EXIT                0x07
+
+#define SWIM_ENTER              0x00
+#define SWIM_EXIT               0x01
+#define SWIM_READ_CAP           0x02
+#define SWIM_SPEED              0x03
+#define SWIM_ENTER_SEQ          0x04
+#define SWIM_GEN_RST            0x05
+#define SWIM_RESET              0x06
+#define SWIM_ASSERT_RESET       0x07
+#define SWIM_DEASSERT_RESET     0x08
+#define SWIM_READSTATUS         0x09
+#define SWIM_WRITEMEM           0x0a
+#define SWIM_READMEM            0x0b
+#define SWIM_READBUF            0x0c
+#define SWIM_READBUFSIZE        0x0d
+
+#if DEBUG
+#undef nSTR
+#define nSTR(name)	[name] = #name + 6
+static const char * const debug_cmd_map[] = {
+	nSTR(DEBUG_EXIT),
+};
+
+#undef nSTR
+#define nSTR(name)	[name] = #name + 4
+static const char * const dfu_cmd_map[] = {
+	nSTR(DFU_EXIT),
+};
+
+#undef nSTR
+#define nSTR(name)	[name] = #name + 5
+static const char * const swim_cmd_map[] = {
+	nSTR(SWIM_ENTER),
+	nSTR(SWIM_EXIT),
+	nSTR(SWIM_READ_CAP),
+	nSTR(SWIM_SPEED),
+	nSTR(SWIM_ENTER_SEQ),
+	nSTR(SWIM_GEN_RST),
+	nSTR(SWIM_RESET),
+	nSTR(SWIM_ASSERT_RESET),
+	nSTR(SWIM_DEASSERT_RESET),
+	nSTR(SWIM_READSTATUS),
+	nSTR(SWIM_WRITEMEM),
+	nSTR(SWIM_READMEM),
+	nSTR(SWIM_READBUF),
+	nSTR(SWIM_READBUFSIZE),
+};
+
+#undef nSTR
+#define nSTR(name)	[name - STLINK_GET_VERSION] = #name + 7
+static const char * const stlink_cmd_map[] = {
+	nSTR(STLINK_GET_VERSION),
+	nSTR(STLINK_DEBUG),
+	nSTR(STLINK_DFU),
+	nSTR(STLINK_SWIM),
+	nSTR(STLINK_GET_CURRENT_MODE),
+	nSTR(STLINK_GET_VDD),
+};
+
+static const char * const cmd_to_str(unsigned int cmd) {
+	static char buf[3];
+
+	cmd -= STLINK_GET_VERSION;
+	if (cmd < sizeof(stlink_cmd_map)/sizeof(stlink_cmd_map[0]) && stlink_cmd_map[cmd])
+		return stlink_cmd_map[cmd];
+
+	sprintf(buf, "%02x", cmd + STLINK_GET_VERSION);
+	return buf;
+}
+
+
+static const struct {
+	const char * const * cmd_to_str;
+	size_t size;
+} stlink_subcmd_map[] = {
+	[STLINK_GET_VERSION - STLINK_GET_VERSION] = { NULL, 0 },
+	[STLINK_DEBUG - STLINK_GET_VERSION] = { debug_cmd_map, sizeof(debug_cmd_map) / sizeof(debug_cmd_map[0]) },
+	[STLINK_DFU - STLINK_GET_VERSION] = { dfu_cmd_map, sizeof(dfu_cmd_map) / sizeof(dfu_cmd_map[0]) },
+	[STLINK_SWIM - STLINK_GET_VERSION] = { swim_cmd_map, sizeof(swim_cmd_map) / sizeof(swim_cmd_map[0]) },
+	[STLINK_GET_CURRENT_MODE - STLINK_GET_VERSION] = { NULL, 0 },
+	[STLINK_GET_VDD - STLINK_GET_VERSION] = { NULL, 0 },
+};
+
+static const char * const subcmd_to_str(unsigned int cmd, unsigned int subcmd) {
+	static char buf[3];
+
+	cmd -= STLINK_GET_VERSION;
+	if (cmd < sizeof(stlink_subcmd_map)/sizeof(stlink_subcmd_map[0]) && subcmd < stlink_subcmd_map[cmd].size)
+		return stlink_subcmd_map[cmd].cmd_to_str[subcmd];
+
+	sprintf(buf, "%02x", subcmd);
+	return buf;
+}
+#endif
 
 unsigned char *pack_int16(uint16_t word, unsigned char *out);
 
-#define STLK_READ_BUFFER_SIZE 6144
+unsigned int read_buf_size = 6144;
 
-unsigned char cmd_buf[16];
-
-unsigned int stlink2_get_status(programmer_t *pgm);
-int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
-int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+static void swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start);
+static int swim_read_byte(programmer_t *pgm, unsigned int addr);
 
 static unsigned int msg_transfer(programmer_t *pgm, unsigned char *buf, unsigned int length, int direction) {
-	int bytes_transferred;
+	int bytes_transferred = 0;
 	int ep = (direction == LIBUSB_ENDPOINT_OUT) ? 2 : 1;
 	if (pgm->type == STLinkV21 || pgm->type == STLinkV3)
 		ep = 1;
@@ -33,261 +164,381 @@ static unsigned int msg_transfer(programmer_t *pgm, unsigned char *buf, unsigned
 	return bytes_transferred;
 }
 
-static unsigned int msg_send(programmer_t *pgm, unsigned char *buf, unsigned int length) {
-	return msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_OUT);
+static void msg_send(programmer_t *pgm, unsigned char *buf, unsigned int length) {
+	while (length > 0) {
+		int n = msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_OUT);
+
+		length -= n;
+		buf += n;
+
+		if (length > 0) {
+			DEBUG_PRINT("    short write - %d bytes still to go\n", length);
+			usleep(1000000);
+		}
+	}
 }
 
-static unsigned int msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int length) {
-	return msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_IN);
-}
+static void msg_recv(programmer_t *pgm, unsigned char *buf, unsigned int length) {
+	int n;
 
-static void msg_recv0(programmer_t *pgm, unsigned int length) {
-	unsigned char buf[64];
-	msg_recv(pgm, buf, length);
+	while (length > 0) {
+		n = msg_transfer(pgm, buf, length, LIBUSB_ENDPOINT_IN);
+		length -= n;
+		buf += n;
+
+		if (length > 0) {
+			DEBUG_PRINT("    short read - %d bytes more needed\n", length);
+			usleep(1000000);
+		}
+	}
 }
 
 static unsigned int msg_recv_int(programmer_t *pgm, unsigned int length) {
-	unsigned char buf[4];
+	unsigned char buf[4] = { 0x00, 0x01, 0x02, 0x03 };
 	msg_recv(pgm, buf, length);
-	return load_int(buf, length, MP_LITTLE_ENDIAN);
+	unsigned int ret = load_int(buf, length, MP_LITTLE_ENDIAN);
+	DEBUG_PRINT("        -> 0x%x\n", ret);
+	return ret;
 }
 
 static unsigned int msg_recv_int8(programmer_t *pgm) {	return msg_recv_int(pgm, 1); }
 static unsigned int msg_recv_int16(programmer_t *pgm) {	return msg_recv_int(pgm, 2); }
-static unsigned int msg_recv_int32(programmer_t *pgm) {	return msg_recv_int(pgm, 4); }
 
-static void msg_init(unsigned char *out, unsigned int cmd) {
-	memset(out, 0, 16);
-	format_int(out, cmd, 2, MP_BIG_ENDIAN);
-}
-
-static void stlink2_cmd(programmer_t *pgm, unsigned int cmd, unsigned int length, ...) {
-	va_list ap;
-	int i;
+static void stlink2_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, va_list ap) {
+	unsigned char cmd_buf[16];
+	int i, j;
 
 	// Preparing
-	msg_init(cmd_buf, cmd);
-	va_start(ap, length);
+	memset(cmd_buf, 0, sizeof(cmd_buf));
 	for(i = 0; i < length; i++) {
-		cmd_buf[i + 2] = va_arg(ap, int);
+		int arg = va_arg(ap, int);
+		cmd_buf[i] = arg;
 	}
-	va_end(ap);
+
+	while (buf_len > 0 && i < sizeof(cmd_buf)) {
+		cmd_buf[i++] = *(buf++);
+		buf_len--;
+	}
+
+	DEBUG_PRINT("     %s", cmd_to_str(cmd_buf[0]));
+	if (i > 1)
+		DEBUG_PRINT(" %s", subcmd_to_str(cmd_buf[0], cmd_buf[1]));
+	for (j = 2; j < i; j++)
+		DEBUG_PRINT(" %02x", cmd_buf[j]);
+	if (buf_len > 0)
+		DEBUG_PRINT(" + %d more bytes", buf_len);
+	DEBUG_PRINT("\n");
 
 	// Triggering USB transfer
 	msg_send(pgm, cmd_buf, sizeof(cmd_buf));
+	if (buf_len)
+		msg_send(pgm, buf, buf_len);
+}
+
+static void swim_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, va_list ap) {
+	static unsigned char status_cmd[] = { STLINK_SWIM, SWIM_READSTATUS };
+	int stalls = 0;
+
+	stlink2_cmd_internal(pgm, buf, buf_len, length, ap);
+
+	while (stalls < 4) {
+		unsigned char buf[2][4];
+		int set = 0;
+
+		msg_send(pgm, status_cmd, sizeof(status_cmd));
+		msg_recv(pgm, buf[set], 4);
+		DEBUG_PRINT("        status %02x %02x %02x %02x\n", buf[set][0], buf[set][1], buf[set][2], buf[set][3]);
+
+		if (buf[set][0] == STLINK_SWIM_OK) {
+			// We're done!
+			//usleep(10000);
+			return;
+		}
+
+		if (buf[set][0] != STLINK_SWIM_BUSY)
+			ERROR2("SWIM error 0x%02d\n", buf[set][0]);
+
+		// Still waiting...
+		if (memcmp(buf[0], buf[1], 4))
+			stalls = 0;
+		else
+			stalls++;
+
+		set ^= 1;
+		//usleep(10000);
+		usleep(100);
+	}
+}
+
+static void swim_cmd(programmer_t *pgm, unsigned int length, ...) {
+	va_list ap;
+
+	va_start(ap, length);
+	swim_cmd_internal(pgm, NULL, 0, length, ap);
+	va_end(ap);
+}
+
+static void swim_cmd_with_data(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, ...) {
+	va_list ap;
+
+	va_start(ap, length);
+	swim_cmd_internal(pgm, buf, buf_len, length, ap);
+	va_end(ap);
+}
+
+#if USE_HIGH_SPEED
+// Switch to high speed SWIM format (UM0470: 3.3)
+static void stlink2_high_speed(programmer_t *pgm) {
+	unsigned char csr;
+
+	// Wait for HSIT to be set in SWIM_CSR
+	while (!((csr = swim_read_byte(pgm, 0x7f80)) & 0x02))
+		usleep(500);
+
+	// Do a SWIM_RESET to resync clocking
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_RESET);
+
+	// Set HS in SWIM_CSR
+	swim_write_byte(pgm, csr | 0x10, 0x7f80);
+
+	// Finally, tell the stlinkv2 to use high speed format.
+	swim_cmd(pgm, 3, STLINK_SWIM, SWIM_SPEED, 1);
+}
+#endif
+
+static void stlink2_cmd(programmer_t *pgm, unsigned int length, ...) {
+	va_list ap;
+
+	va_start(ap, length);
+	stlink2_cmd_internal(pgm, NULL, 0, length, ap);
+	va_end(ap);
 }
 
 bool stlink2_open(programmer_t *pgm) {
-	stlink2_cmd(pgm, 0xf500, 0);
-	switch(msg_recv_int16(pgm)) {
-		case 0x0100:
-		case 0x0001:
-		case 0x0301:
-			// Run initializing sequence
-			stlink2_cmd(pgm, 0xf307, 0); // Start initializing sequence
-			stlink2_cmd(pgm, 0xf400, 0); // Turns the lights on
-		case 0x0003:
-			stlink2_cmd(pgm, 0xf40d, 0);
-			msg_recv_int16(pgm);
-			stlink2_cmd(pgm, 0xf402, 1, 0x01);
-			msg_recv0(pgm, 8);
+	unsigned char buf[8];
+	unsigned int v;
+
+	stlink2_cmd(pgm, 1, STLINK_GET_VERSION);
+	msg_recv(pgm, buf, 6);
+	v = (buf[0] << 8) | buf[1];
+	fprintf(stderr, "STLink: v%d, JTAG: v%d, SWIM: v%d, VID: %02x%02x, PID: %02x%02x\n",
+		(v >> 12) & 0x3f, (v >> 6) & 0x3f, v & 0x3f, buf[2], buf[3], buf[4], buf[5]);
+
+#if 0
+	// This does not appear to work on all ST-Link V2 clones even if the JTAG
+	// version is high enough?
+	if (((v >> 6) & 0x3f) >= 13) {
+		stlink2_cmd(pgm, 1, STLINK_GET_VDD);
+		msg_recv(pgm, buf, 8);
+		if ((v = load_int(buf, 4, MP_LITTLE_ENDIAN)))
+			fprintf(stderr, "Target voltage: %.2fV\n", 2.0 * (load_int(buf+4, 4, MP_LITTLE_ENDIAN) * (1.2 / v)));
+	}
+#endif
+
+	stlink2_cmd(pgm, 1, STLINK_GET_CURRENT_MODE);
+	msg_recv(pgm, buf, 2);
+	DEBUG_PRINT("        -> %02x %02x\n", buf[0], buf[1]);
+
+	switch (buf[0]) {
+		case STLINK_MODE_DEBUG:
+			stlink2_cmd(pgm, 2, STLINK_DEBUG, DEBUG_EXIT);
+			break;
+
+		case STLINK_MODE_BOOTLOADER:
+		case STLINK_MODE_DFU:
+		case STLINK_MODE_MASS:
+			stlink2_cmd(pgm, 2, STLINK_DFU, DFU_EXIT);
+			break;
+
+		default:
 			break;
 	}
+
+	if (buf[0] != STLINK_MODE_SWIM)
+		stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_ENTER);
+
+	stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_READBUFSIZE);
+	read_buf_size = msg_recv_int16(pgm);
+
+	stlink2_cmd(pgm, 3, STLINK_SWIM, SWIM_READ_CAP, 0x01);
+	msg_recv(pgm, buf, 8);
+	DEBUG_PRINT("        -> %02x %02x %02x %02x %02x %02x %02x %02x\n",
+		buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_ASSERT_RESET);
+
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_ENTER_SEQ);
+
+	// Mask internal interrupt sources, enable access to whole of memory,
+	// prioritize SWIM and stall the CPU.
+	swim_write_byte(pgm, 0xa1, 0x7f80);
+
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_DEASSERT_RESET);
+	usleep(1000);
+
+#if USE_HIGH_SPEED
+	stlink2_high_speed(pgm);
+#endif
+
 	return(true);
 }
 
 void stlink2_srst(programmer_t *pgm) {
-	stlink2_cmd(pgm, 0xf407, 2, 0x00, 0x01);
-	stlink2_get_status(pgm);
-	stlink2_cmd(pgm, 0xf408, 2, 0x00, 0x01);
-	stlink2_get_status(pgm);
-}
-
-void stlink2_init_session(programmer_t *pgm) {
-	int i;
-	char f4_cmd_arg1[] = {	0x07,
-				0x07,
-				0x08,
-				0x07,
-				0x04,
-				0x03,
-				0x05,
-				};
-	for(i = 0; i < sizeof(f4_cmd_arg1); i++) {
-		stlink2_cmd(pgm, 0xf400 | f4_cmd_arg1[i], 0);
-		TRY(8, stlink2_get_status(pgm) == 0);
-	}
-
-	stlink2_write_byte(pgm, 0xa0, 0x7f80); // mov 0x0a, SWIM_CSR2 ;; Init SWIM
-	stlink2_cmd(pgm, 0xf408, 0);
-	TRY(8, stlink2_get_status(pgm) == 0);
-
-	// This is probably a bug: Should set the STALL bit (write 8 instead of
-	// A0) What is currently being done: DM_CSR2 (0x7f99): Reserved (0x80) |
-	// Software breakpoint control (0x20)
-	stlink2_write_and_read_byte(pgm, 0xa0, 0x7f99);
-
-	stlink2_cmd(pgm, 0xf40c, 0);
-	msg_recv_int8(pgm); // 0x08 (or 0x0a if used stlink2_write_byte() instead)
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_GEN_RST);
+	usleep(1000);
 }
 
 void stlink2_finish_session(programmer_t *pgm) {
-	stlink2_cmd(pgm, 0xf405, 0);
-	stlink2_get_status(pgm);
-	stlink2_cmd(pgm, 0xf407, 0);
-	stlink2_get_status(pgm);
-	stlink2_cmd(pgm, 0xf403, 0);
-	stlink2_get_status(pgm);
+	swim_write_byte(pgm, swim_read_byte(pgm, 0x7f80) | 0x4, 0x7f80); // set SWIM_CSR.RST
+	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_GEN_RST);
+	stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_EXIT);
 }
 
-int stlink2_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	stlink2_cmd(pgm, 0xf40a, 7,
+static void swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
+	swim_cmd(pgm, 9, STLINK_SWIM, SWIM_WRITEMEM,
 			0x00, 0x01,
 			0x00, EX(start),
 			HI(start), LO(start),
 			byte);
-	usleep(2000);
-	return(stlink2_get_status(pgm)); // Should be '1'
 }
 
-int stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
-	stlink2_cmd(pgm, 0xf40a, 8,
+#if 0
+static void stlink2_write_word(programmer_t *pgm, unsigned int word, unsigned int start) {
+	swim_cmd(pgm, 10, STLINK_SWIM, SWIM_WRITEMEM,
 			0x00, 0x02,
 			0x00, EX(start),
 			HI(start), LO(start),
 			HI(word), LO(word));
-	usleep(2000);
-	return(stlink2_get_status(pgm)); // Should be '1'
 }
+#endif
 
-int stlink2_write_and_read_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {
-	stlink2_cmd(pgm, 0xf40b, 7,
+static int swim_read_byte(programmer_t *pgm, unsigned int addr) {
+	swim_cmd(pgm, 8, STLINK_SWIM, SWIM_READMEM,
 			0x00, 0x01,
-			0x00, EX(start),
-			HI(start), LO(start),
-			byte);
-	usleep(2000);
-	stlink2_get_status(pgm);
+			0x00, EX(addr),
+			HI(addr), LO(addr));
 
-	stlink2_cmd(pgm, 0xf40c, 0);
+	stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_READBUF);
 	return(msg_recv_int8(pgm));
 }
 
-unsigned int stlink2_get_status(programmer_t *pgm) {
-	stlink2_cmd(pgm, 0xf409, 0);
-	return msg_recv_int32(pgm);
-}
-
 int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length) {
-	stlink2_init_session(pgm);
+	DEBUG_PRINT("read range\n");
 
-	int i;
-	for(i = 0; i < length; i += STLK_READ_BUFFER_SIZE) {
-		// Determining current block start & size (relative to 0x8000)
-		int block_start = start + i;
-		int block_size = length - i;
-		if(block_size > STLK_READ_BUFFER_SIZE) {
-			block_size = STLK_READ_BUFFER_SIZE;
-		}
+	unsigned int remaining = length;
 
-		// Sending USB packet
-		stlink2_cmd(pgm, 0xf40b, 6,
-				HI(block_size), LO(block_size),
-				0x00, EX(block_start), 
-				HI(block_start), LO(block_start));
-		TRY(128, (stlink2_get_status(pgm) & 0xffff) == 0);
+	while (remaining > 0) {
+		unsigned int size = (remaining > read_buf_size ? read_buf_size : remaining);
 
-		// Seems like we've got some bytes from stlink, downloading them
-		stlink2_cmd(pgm, 0xf40c, 0);
-		msg_recv(pgm, &(buffer[i]), block_size);
+		DEBUG_PRINT("read 0x%04x to 0x%04x\n", start, start + size);
+
+		swim_cmd(pgm, 8, STLINK_SWIM, SWIM_READMEM,
+				HI(size), LO(size),
+				0x00, EX(start), HI(start), LO(start));
+
+		stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_READBUF);
+		msg_recv(pgm, buffer, size);
+
+		buffer += size;
+		start += size;
+		remaining -= size;
 	}
 
 	stlink2_finish_session(pgm);
-
-	return(length);
-}
-
-void stlink2_wait_until_transfer_completes(programmer_t *pgm, const stm8_device_t *device) {
-	TRY(8, stlink2_write_and_read_byte(pgm, 0x82, device->regs.FLASH_IAPSR) & 0x4);
+	return length;
 }
 
 int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, unsigned char *buffer, unsigned int start, unsigned int length, const memtype_t memtype) {
-	stlink2_init_session(pgm);
+	unsigned int iapsr;
 
-	stlink2_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
-    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
-        stlink2_write_and_read_byte(pgm, 0x00, device->regs.FLASH_IAPSR);
-    }
+	DEBUG_PRINT("write range: setup\n");
 
-    // Unlock MASS
-    if(memtype == FLASH) {
-        stlink2_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
-        stlink2_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
-    }
-    if(memtype == EEPROM || memtype == OPT) {
-        stlink2_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
-        stlink2_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
-    }
+	swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
 
-    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
-        stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
-    }
-
-	int i;
-	int BLOCK_SIZE = device->flash_block_size;
-	for(i = 0; i < length; i+=BLOCK_SIZE) {
-        if(memtype == FLASH || memtype == EEPROM) {
-            // block programming mode
-            stlink2_write_byte(pgm, 0x01, device->regs.FLASH_CR2); // mov 0x01fe, FLASH_CR2; 0x817e - enable write OPT bytes
-            if(device->regs.FLASH_NCR2 != 0) { // Device have FLASH_NCR2 register
-                stlink2_write_byte(pgm, 0xFE, device->regs.FLASH_NCR2);
-            }
-        } else if (memtype == OPT){
-            // option programming mode
-            stlink2_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
-            if(device->regs.FLASH_NCR2 != 0) {
-                stlink2_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
-            }
-        }
-
-        if(memtype == OPT){
-			if(device->read_out_protection_mode == ROP_STM8L && buffer[0]==0xAA && start == 0x4800) {
-				// trying to unlock
-                stlink2_write_byte(pgm, 0xAA, start);
-                TRY(800, HI(stlink2_get_status(pgm)) == 1);
-            }
-            int j;
-            for(j = 0; j < length; j++){
-                stlink2_write_byte(pgm, buffer[j], start+j);
-                TRY(8, HI(stlink2_get_status(pgm)) == 1);
-            }
-        } else {
-            // page-based writing
-            // The first 8 packet bytes are getting transmitted
-            // with the same USB bulk transfer as the command itself
-            msg_init(cmd_buf, 0xf40a);
-            format_int(&(cmd_buf[2]), BLOCK_SIZE, 2, MP_BIG_ENDIAN);
-            format_int(&(cmd_buf[5]), start + i, 3, MP_BIG_ENDIAN);
-            memcpy(&(cmd_buf[8]), &(buffer[i]), 8);
-            msg_send(pgm, cmd_buf, sizeof(cmd_buf));
-
-            // Transmitting the rest
-            msg_send(pgm, &(buffer[i + 8]), BLOCK_SIZE - 8);
-
-            // Waiting for the transfer to process
-            TRY(128, HI(stlink2_get_status(pgm)) == BLOCK_SIZE);
-        }
-
-        if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
-            stlink2_wait_until_transfer_completes(pgm, device);
-        }
+	// Unlock MASS
+	DEBUG_PRINT("write range: unlock MASS\n");
+	if (memtype == FLASH) {
+		swim_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
+		swim_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
+	} else if (memtype == EEPROM || memtype == OPT) {
+		swim_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
+		swim_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
 	}
-    if(memtype == FLASH || memtype == EEPROM || memtype == OPT) {
-        stlink2_write_and_read_byte(pgm, 0x56, device->regs.FLASH_IAPSR); // mov 0x56, FLASH_IAPSR
-    }
-	stlink2_write_byte(pgm, 0x00, 0x7f80);
-	stlink2_write_byte(pgm, 0xb6, 0x7f80);
+
+	if (memtype == OPT) {
+		// Option programming mode
+		swim_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
+		if (device->regs.FLASH_NCR2 != 0) {
+			swim_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
+		}
+
+		for (unsigned int i = 0; i < length; i++)
+			swim_write_byte(pgm, *(buffer++), start++);
+
+		// Wait for EOP to be set in FLASH_IAPSR
+		usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
+		while (!((iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR)) & 0x04)) {
+			usleep(100);
+		}
+	} else {
+		unsigned int rounded_size = ((length - 1) / device->flash_block_size + 1) * device->flash_block_size;
+		unsigned char *current = alloca(rounded_size);
+		int i;
+
+#if ONLY_WRITE_DIFFS
+		stlink2_swim_read_range(pgm, device, current, start, rounded_size);
+		memcpy(buffer + length, current + length, rounded_size - length);
+#endif
+
+		DEBUG_PRINT("write range: block program with block size = %d\n", device->flash_block_size);
+
+		for (i = 0; i < length; i += device->flash_block_size) {
+			if (ONLY_WRITE_DIFFS && !memcmp(current + i, buffer + i, device->flash_block_size)) {
+				DEBUG_PRINT("no change 0x%04x to 0x%04x\n", start + i, start + i + device->flash_block_size);
+			} else {
+				int prgmode = 0x10;
+
+				for (int j = 0; j < device->flash_block_size; j++) {
+					if (buffer[i + j]) {
+						prgmode = 0x01;
+						break;
+					}
+				}
+
+				DEBUG_PRINT("%swrite 0x%04x to 0x%04x\n", (prgmode == 0x10 ? "fast " : ""), start + i, start + i + device->flash_block_size);
+
+				if (memtype == FLASH || memtype == EEPROM) {
+					// Standard block programming mode
+					swim_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
+					if(device->regs.FLASH_NCR2 != 0) {
+						swim_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
+					}
+				}
+
+				// Page-based writing
+				// The first 8 packet bytes are transmitted in the same USB bulk transfer
+				// as the command itself with the rest following.
+				swim_cmd_with_data(pgm, buffer + i, device->flash_block_size, 8, STLINK_SWIM, SWIM_WRITEMEM,
+					HI(device->flash_block_size), LO(device->flash_block_size),
+					EH(start + i), EX(start + i), HI(start + i), LO(start + i));
+
+				if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+					// Wait for EOP to be set in FLASH_IAPSR
+					// t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
+					usleep(prgmode == 0x10 ? 3000 : 6000);
+					while (!((iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR)) & 0x04)) {
+						usleep(100);
+					}
+				}
+			}
+		}
+	}
+
+	if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+		// Reset DUL and PUL in IAPSR to disable flash and data writes.
+		swim_write_byte(pgm, iapsr & (~0x0a), device->regs.FLASH_IAPSR);
+	}
+
 	stlink2_finish_session(pgm);
 	return(length);
 }
-
