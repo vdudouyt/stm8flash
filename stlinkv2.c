@@ -384,13 +384,13 @@ bool stlink2_open(programmer_t *pgm) {
 }
 
 void stlink2_srst(programmer_t *pgm) {
+	swim_write_byte(pgm, swim_read_byte(pgm, 0x7f80) | 0x4, 0x7f80); // set SWIM_CSR.RST
+	// alt : remove stall bit after reset (like libespstlink)
 	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_GEN_RST);
 	usleep(1000);
 }
 
-void stlink2_finish_session(programmer_t *pgm) {
-	swim_write_byte(pgm, swim_read_byte(pgm, 0x7f80) | 0x4, 0x7f80); // set SWIM_CSR.RST
-	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_GEN_RST);
+void stlink2_close(programmer_t *pgm) {
 	stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_EXIT);
 }
 
@@ -444,7 +444,6 @@ int stlink2_swim_read_range(programmer_t *pgm, const stm8_device_t *device, unsi
 		remaining -= size;
 	}
 
-	stlink2_finish_session(pgm);
 	return length;
 }
 
@@ -539,6 +538,5 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 		swim_write_byte(pgm, iapsr & (~0x0a), device->regs.FLASH_IAPSR);
 	}
 
-	stlink2_finish_session(pgm);
 	return(length);
 }
