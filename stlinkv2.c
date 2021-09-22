@@ -476,9 +476,7 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 
 		// Wait for EOP to be set in FLASH_IAPSR
 		usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
-		while (!((iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR)) & 0x04)) {
-			usleep(100);
-		}
+		TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
 	} else {
 		unsigned int rounded_size = ((length - 1) / device->flash_block_size + 1) * device->flash_block_size;
 		unsigned char *current = alloca(rounded_size);
@@ -525,9 +523,7 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 					// Wait for EOP to be set in FLASH_IAPSR
 					// t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
 					usleep(prgmode == 0x10 ? 3000 : 6000);
-					while (!((iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR)) & 0x04)) {
-						usleep(100);
-					}
+					TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
 				}
 			}
 		}
@@ -535,6 +531,7 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 
 	if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
 		// Reset DUL and PUL in IAPSR to disable flash and data writes.
+		iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR);
 		swim_write_byte(pgm, iapsr & (~0x0a), device->regs.FLASH_IAPSR);
 	}
 
