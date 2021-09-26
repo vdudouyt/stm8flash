@@ -1,7 +1,8 @@
 stm8flash
 =========
 
-This is a free and opensource software distributed under the terms of the GNU General Public License v2.
+This is free and opensource software distributed under the terms of the GNU General Public License,
+either version 2 of the License, or (at your option) any later version.
 
 For years, it was the only program that's able to communicate through the SWIM interface of ST-LINKs under Linux.
 
