@@ -238,36 +238,33 @@ static void stlink2_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned
 static void swim_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, va_list ap) {
 	static unsigned char status_cmd[] = { STLINK_SWIM, SWIM_READSTATUS };
 	int stalls = 0;
+	unsigned char status[2][4];
+	int set = 0;
 
 	stlink2_cmd_internal(pgm, buf, buf_len, length, ap);
 
 	while (stalls < 4) {
-		unsigned char buf[2][4];
-		int set = 0;
 
 		msg_send(pgm, status_cmd, sizeof(status_cmd));
-		msg_recv(pgm, buf[set], 4);
-		DEBUG_PRINT("        status %02x %02x %02x %02x\n", buf[set][0], buf[set][1], buf[set][2], buf[set][3]);
+		msg_recv(pgm, status[set], 4);
+		DEBUG_PRINT("        status %02x %02x %02x %02x\n", status[set][0], status[set][1], status[set][2], status[set][3]);
 
-		if (buf[set][0] == STLINK_SWIM_OK) {
+		if (status[set][0] == STLINK_SWIM_OK) {
 			// We're done!
-			//usleep(10000);
 			return;
 		}
 
-		if (buf[set][0] != STLINK_SWIM_BUSY)
-			ERROR2("SWIM error 0x%02d\n", buf[set][0]);
-
 		// Still waiting...
-		if (memcmp(buf[0], buf[1], 4))
+		if (memcmp(status[0], status[1], 4))
 			stalls = 0;
 		else
 			stalls++;
 
 		set ^= 1;
-		//usleep(10000);
-		usleep(100);
+		usleep(10000);
+		//usleep(100);
 	}
+	ERROR2("SWIM error 0x%02d\n", status[set][0]);
 }
 
 static void swim_cmd(programmer_t *pgm, unsigned int length, ...) {
@@ -292,17 +289,25 @@ static void stlink2_high_speed(programmer_t *pgm) {
 	unsigned char csr;
 
 	// Wait for HSIT to be set in SWIM_CSR
-	while (!((csr = swim_read_byte(pgm, 0x7f80)) & 0x02))
+	// avoid hanging when HSIT doesn't become 1
+	unsigned char retries = 10;
+	while (!((csr = swim_read_byte(pgm, 0x7f80)) & 0x02) && (retries-- != 0))
 		usleep(500);
 
 	// Do a SWIM_RESET to resync clocking
 	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_RESET);
 
-	// Set HS in SWIM_CSR
-	swim_write_byte(pgm, csr | 0x10, 0x7f80);
+	if (csr & 0x02) {
+		// Set HS in SWIM_CSR
+		swim_write_byte(pgm, csr | 0x10, 0x7f80);
 
-	// Finally, tell the stlinkv2 to use high speed format.
-	swim_cmd(pgm, 3, STLINK_SWIM, SWIM_SPEED, 1);
+		// Finally, tell the stlinkv2 to use high speed format.
+		swim_cmd(pgm, 3, STLINK_SWIM, SWIM_SPEED, 1);
+		DEBUG_PRINT("continuing in high speed swim\n");
+	}
+	else {
+		DEBUG_PRINT("continuing in low speed swim\n");
+	}
 }
 #endif
 
@@ -455,11 +460,12 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 	swim_write_byte(pgm, 0x00, device->regs.CLK_CKDIVR);
 
 	// Unlock MASS
-	DEBUG_PRINT("write range: unlock MASS\n");
 	if (memtype == FLASH) {
+		DEBUG_PRINT("write range: unlock FLASH\n");
 		swim_write_byte(pgm, 0x56, device->regs.FLASH_PUKR);
 		swim_write_byte(pgm, 0xae, device->regs.FLASH_PUKR); 
 	} else if (memtype == EEPROM || memtype == OPT) {
+		DEBUG_PRINT("write range: unlock EEPROM\n");
 		swim_write_byte(pgm, 0xae, device->regs.FLASH_DUKR);
 		swim_write_byte(pgm, 0x56, device->regs.FLASH_DUKR);
 	}
@@ -471,13 +477,15 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 			swim_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
 		}
 
-		for (unsigned int i = 0; i < length; i++)
+		for (unsigned int i = 0; i < length; i++) {
 			swim_write_byte(pgm, *(buffer++), start++);
+			// Wait for EOP to be set in FLASH_IAPSR
+			usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
+			TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
+		}
 
-		// Wait for EOP to be set in FLASH_IAPSR
-		usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
-		TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
 	} else {
+		// NOTE : RAM is also written in flash_block_size chunks here; just for convenience
 		unsigned int rounded_size = ((length - 1) / device->flash_block_size + 1) * device->flash_block_size;
 		unsigned char *current = alloca(rounded_size);
 		int i;
@@ -490,11 +498,12 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 		DEBUG_PRINT("write range: block program with block size = %d\n", device->flash_block_size);
 
 		for (i = 0; i < length; i += device->flash_block_size) {
+				// BUG HERE : can read beyond buffer[] array boundary, because buffer is not always a multiple of flash_block_size
 			if (ONLY_WRITE_DIFFS && !memcmp(current + i, buffer + i, device->flash_block_size)) {
 				DEBUG_PRINT("no change 0x%04x to 0x%04x\n", start + i, start + i + device->flash_block_size);
 			} else {
 				int prgmode = 0x10;
-
+				// BUG HERE : can read beyond buffer[] array boundary, because buffer is not always a multiple of flash_block_size
 				for (int j = 0; j < device->flash_block_size; j++) {
 					if (buffer[i + j]) {
 						prgmode = 0x01;
@@ -515,15 +524,30 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 				// Page-based writing
 				// The first 8 packet bytes are transmitted in the same USB bulk transfer
 				// as the command itself with the rest following.
+				// BUG HERE : only works correctly if start is on flash block boundary
 				swim_cmd_with_data(pgm, buffer + i, device->flash_block_size, 8, STLINK_SWIM, SWIM_WRITEMEM,
 					HI(device->flash_block_size), LO(device->flash_block_size),
 					EH(start + i), EX(start + i), HI(start + i), LO(start + i));
 
-				if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+				if (memtype == FLASH || memtype == EEPROM) {
 					// Wait for EOP to be set in FLASH_IAPSR
 					// t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
 					usleep(prgmode == 0x10 ? 3000 : 6000);
-					TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
+					//TRY(5,swim_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
+					// provide a better error message than 'tries exceeded'
+					do {
+						int retries = 5;
+						int iapsr;
+						while (retries > 0) {
+							iapsr = swim_read_byte(pgm, device->regs.FLASH_IAPSR);
+							if (iapsr & 0x04) break;
+							if (iapsr & 0x01) {
+								ERROR("target page is write protected (UBC) or read-out protection is enabled");
+							}
+							retries--;
+							usleep(10000);
+						}
+					} while (0);
 				}
 			}
 		}
