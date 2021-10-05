@@ -1,6 +1,7 @@
 stm8link was historically licensed under the GPL, version 2, without the "or later" clause.
 But some newer parts were licensed under GPLv3. These licenses are incompatible. Moving to
 GPLv2 with the "or later" clause fixed this.
+The license change to "GPLv2 or later" has happened. This file now remains for documentation only.
 
 Authors that have agreed to change from "GPLv2 only" or "GPLv3" to "GPLv2 or later":
 
@@ -22,6 +23,7 @@ Mario Cianciolo <mr.udda@gmail.com>
 Ivan A-R <aia@bileter.ru> <i@lolhost.org> / plumbum <ivan@tuxotronic.org>
 Nguyen Huu Hoa <huuhoa@gmail.com>
 Stefaan De Smet <stefaandesmet2003@yahoo.co.uk>
+janezNov / Žiga Stegu <ziga.Stegu@gorenje.com>
 
 Authors that have not agreed:
 
