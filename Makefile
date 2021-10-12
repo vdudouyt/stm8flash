@@ -52,7 +52,7 @@ ifndef DESTDIR
 endif
 
 BIN 		=stm8flash
-OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o libespstlink.o
+OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o libespstlink.o autodetect.o
 
 
 .PHONY: all clean install

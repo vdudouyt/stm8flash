@@ -56,7 +56,7 @@ typedef struct programmer_s {
 	unsigned int out_msg_size; // stlink/stlinkv2
 
 	/* Data for espstlink module. */
-        espstlink_t * espstlink;
+	espstlink_t * espstlink;
 	const char *port;
 } programmer_t;
 
