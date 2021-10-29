@@ -235,8 +235,15 @@ static void stlink2_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned
 		msg_send(pgm, buf, buf_len);
 }
 
+static void stlink2_cmd(programmer_t *pgm, unsigned int length, ...) {
+	va_list ap;
+
+	va_start(ap, length);
+	stlink2_cmd_internal(pgm, NULL, 0, length, ap);
+	va_end(ap);
+}
+
 static void swim_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned int buf_len, unsigned int length, va_list ap) {
-	static unsigned char status_cmd[] = { STLINK_SWIM, SWIM_READSTATUS };
 	int stalls = 0;
 	unsigned char status[2][4];
 	int set = 0;
@@ -245,7 +252,7 @@ static void swim_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned in
 
 	while (stalls < 4) {
 
-		msg_send(pgm, status_cmd, sizeof(status_cmd));
+		stlink2_cmd(pgm,2,STLINK_SWIM,SWIM_READSTATUS);
 		msg_recv(pgm, status[set], 4);
 		DEBUG_PRINT("        status %02x %02x %02x %02x\n", status[set][0], status[set][1], status[set][2], status[set][3]);
 
@@ -310,14 +317,6 @@ static void stlink2_high_speed(programmer_t *pgm) {
 	}
 }
 #endif
-
-static void stlink2_cmd(programmer_t *pgm, unsigned int length, ...) {
-	va_list ap;
-
-	va_start(ap, length);
-	stlink2_cmd_internal(pgm, NULL, 0, length, ap);
-	va_end(ap);
-}
 
 bool stlink2_open(programmer_t *pgm) {
 	unsigned char buf[8];
