@@ -1,0 +1,9 @@
+1) Ensure the necessary dependencies are installed, in particular pkg-config and libusb:
+   E.g. on Debian or Ubuntu (as root or via sudo): apt-get install pkg-config libusb-1.0-0-dev
+
+2) Build it:
+   make
+  
+3) Install it:
+   (as root or sudo): make install
+
