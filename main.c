@@ -151,7 +151,7 @@ void dump_pgms(programmer_t *pgms) {
 }
 
 bool is_ext(const char *filename, const char *ext) {
-	char *ext_begin = strrchr(filename, '.');
+	char *ext_begin = rindex(filename, '.');
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
