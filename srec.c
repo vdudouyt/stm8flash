@@ -66,9 +66,10 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
   unsigned int expected_data_records = 0;
   unsigned int data_len = 0;
   unsigned char temp = ' ';
+  unsigned int checksum;
 
   while(fgets(line, sizeof(line), pFile)) {
-    data_record = true; //Assume that the read data is a data record. Set to false if not.
+    data_record = false;
     line_no++;
 
     // Reading chunk header
@@ -94,10 +95,14 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	}
 	//The expected total number of data records is saved in S503<addr> field.
 	//Address is only 2 byte long and checksum is also read as part of the address, so we need to strip it.
-	expected_data_records = chunk_addr >> 8;
+	chunk_type = 1;
+	chunk_addr = chunk_addr >> 8;
+	expected_data_records = chunk_addr;
+	data_len = 0;
       }
     else if(is_data_type(chunk_type))
       {
+	data_record = true;
 	chunk_addr = chunk_addr >> (8*(3-chunk_type));
 	data_len = chunk_len - chunk_type - 2; // See https://en.wikipedia.org/wiki/SREC_(file_format)#Record_types
       }
@@ -106,23 +111,25 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
 	continue;
       }
 
+    checksum = chunk_len;
+    checksum += (chunk_addr >> 0) & 0xFF;
+    checksum += (chunk_addr >> 8) & 0xFF;
+    checksum += (chunk_addr >> 16) & 0xFF;
+    checksum += (chunk_addr >> 24) & 0xFF;
+
     // Reading chunk data
-    for(i = 6 + 2*chunk_type; i < 2*data_len + 8; i +=2) {
+    for(i = 2*(chunk_type+3); i < 2*(chunk_type+3+data_len); i +=2) {
       if(sscanf(&(line[i]), "%02x", &byte) != 1) {
 	free(buf);
 	ERROR2("Error while parsing SREC at line %d byte %d\n", line_no, i);
       }
+      checksum += byte;
 
-      if(!is_data_type(chunk_type)) {
+      if(!data_record) {
 	// The only data records have to be processed
-	data_record = false;
 	continue;
       }
 
-      if((i - 8) / 2 >= chunk_len) {
-	// Respect chunk_len and do not capture checksum as data
-	break;
-      }
       if(chunk_addr < start) {
 	free(buf);
 	ERROR2("Address %08x is out of range at line %d\n", chunk_addr, line_no);
@@ -138,6 +145,17 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
     }
     if(data_record) { //We found a data record. Remember this.
       number_of_records++;
+    }
+
+    i = 2*(chunk_type+3+data_len);
+    if(sscanf(&(line[i]), "%02x", &byte) != 1) {
+      free(buf);
+      ERROR2("Error while reading checksum at line %d byte %d\n", line_no, i);
+    }
+    checksum += byte;
+
+    if ((checksum & 0xFF) != 0xFF) {
+      ERROR2("Invalid checksum at line %d\n", line_no);
     }
   }
 
