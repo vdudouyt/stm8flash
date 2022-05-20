@@ -376,6 +376,7 @@ bool stlink2_open(programmer_t *pgm) {
 	// Mask internal interrupt sources, enable access to whole of memory,
 	// prioritize SWIM and stall the CPU.
 	swim_write_byte(pgm, 0xa1, 0x7f80);
+	swim_write_byte(pgm,0x9,0x7F99); // stall CPU & flush
 
 	swim_cmd(pgm, 2, STLINK_SWIM, SWIM_DEASSERT_RESET);
 	usleep(1000);
@@ -396,6 +397,9 @@ void stlink2_srst(programmer_t *pgm) {
 
 void stlink2_close(programmer_t *pgm) {
 	stlink2_cmd(pgm, 2, STLINK_SWIM, SWIM_EXIT);
+	// bit strange that usb_init is done in main, and exit done here..
+	libusb_close(pgm->dev_handle);
+	libusb_exit(pgm->ctx); //close the session
 }
 
 static void swim_write_byte(programmer_t *pgm, unsigned char byte, unsigned int start) {

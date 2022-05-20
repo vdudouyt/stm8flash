@@ -1,25 +1,6 @@
 #include <stdio.h>
 #include "stm8.h"
 
-#define REGS_STM8S { \
-        .CLK_CKDIVR = 0x50c6,  \
-        .FLASH_PUKR = 0x5062,  \
-        .FLASH_DUKR = 0x5064,  \
-        .FLASH_IAPSR = 0x505f, \
-        .FLASH_CR2 = 0x505b,   \
-        .FLASH_NCR2 = 0x505c,   \
-}
-
-// Note: FLASH_NCR2 not present on stm8l
-#define REGS_STM8L { \
-        .CLK_CKDIVR = 0x50c0,  \
-        .FLASH_PUKR = 0x5052,  \
-        .FLASH_DUKR = 0x5053,  \
-        .FLASH_IAPSR = 0x5054, \
-        .FLASH_CR2 = 0x5051,   \
-        .FLASH_NCR2 = 0x0000,   \
-}
-
 const stm8_device_t stm8_devices[] = {
     {
         .name = "stlux385",
@@ -57,7 +38,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -70,7 +51,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -83,7 +64,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -96,7 +77,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 4*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -109,7 +90,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -122,7 +103,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -135,7 +116,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -148,7 +129,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 16*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -161,7 +142,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -174,7 +155,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -187,7 +168,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -200,7 +181,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -213,7 +194,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
@@ -226,7 +207,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -239,7 +220,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 16*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -252,7 +233,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -265,7 +246,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -278,7 +259,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -291,7 +272,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 16*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -304,7 +285,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -317,7 +298,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -330,7 +311,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -343,7 +324,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 9,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0013
         REGS_STM8L
     },
     {
@@ -356,7 +337,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -369,7 +350,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -382,7 +363,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -395,7 +376,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -408,7 +389,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 2*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0013
         REGS_STM8L
     },
     {
@@ -421,7 +402,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 4*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0013
         REGS_STM8L
     },
     {
@@ -434,7 +415,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0013
         REGS_STM8L
     },
     {
@@ -447,7 +428,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 4*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -460,7 +441,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -476,7 +457,7 @@ const stm8_device_t stm8_devices[] = {
         // According to user feedback, stm8flash works with 128, but not with 64.
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -489,7 +470,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -502,7 +483,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -515,7 +496,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 16*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -528,7 +509,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size = 13,
-        .read_out_protection_mode = ROP_STM8L,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -541,7 +522,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -554,7 +535,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8L, // RM0031
         REGS_STM8L
     },
     {
@@ -567,7 +548,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 11,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -580,7 +561,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 11,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -593,7 +574,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size = 15,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -606,7 +587,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -619,7 +600,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 4*1024,
         .flash_block_size = 64,
         .option_bytes_size = 11,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -632,7 +613,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 11,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
          REGS_STM8S
     },
     {
@@ -645,7 +626,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 16*1024,
         .flash_block_size = 128,
         .option_bytes_size = 15,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -658,7 +639,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size = 15,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -671,7 +652,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -684,7 +665,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -697,7 +678,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -710,7 +691,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -723,7 +704,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -736,7 +717,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -749,7 +730,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -762,7 +743,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -775,7 +756,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -788,7 +769,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -801,7 +782,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -814,7 +795,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -827,7 +808,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 32*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -840,7 +821,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 64*1024,
         .flash_block_size = 128,
         .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -853,7 +834,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size = 17,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {
@@ -866,7 +847,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 11,
-        .read_out_protection_mode = ROP_STM8S,
+        .read_out_protection_mode = ROP_STM8S, // RM0016
         REGS_STM8S
     },
     {

@@ -347,6 +347,8 @@ bool stlink_open(programmer_t *pgm) {
 }
 
 void stlink_close(programmer_t *pgm) {
+	// bit strange that usb_init is done in main, and exit done here..
+	libusb_close(pgm->dev_handle);
 	libusb_exit(pgm->ctx); //close the session
 }
 
