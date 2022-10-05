@@ -81,6 +81,7 @@ programmer_t pgms[] = {
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
 	},
+#ifndef NO_ESP
 	{
 		"espstlink",
 		ESP_STLink,
@@ -92,54 +93,59 @@ programmer_t pgms[] = {
 		espstlink_swim_read_range,
 		espstlink_swim_write_range,
 	},
+#endif
 	{ NULL },
 };
+
+#define print_text(stream, ...)	{ fprintf((stream), __VA_ARGS__); fflush((stream));  }
 
 void print_help_and_exit(const char *name, bool err) {
 	int i = 0;
 	FILE *stream = err ? stderr : stdout;
-	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
-	fprintf(stream, "Options:\n");
-	fprintf(stream, "\t-?             Display this help\n");
-	fprintf(stream, "\t-c programmer  Specify programmer used (");
+	print_text(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	print_text(stream, "Options:\n");
+	print_text(stream, "\t-?             Display this help\n");
+	print_text(stream, "\t-c programmer  Specify programmer used (");
 	while (1) {
 		if (pgms[i].name == NULL)
 			break;
 
 		if (i) {
-			if (pgms[i+1].name == NULL)
-				fprintf(stream, " or ");
-			else
-				fprintf(stream, ", ");
+			if (pgms[i+1].name == NULL) {
+				print_text(stream, " or ");
+			}
+			else {
+				print_text(stream, ", ");
+			}
 		}
 
-		fprintf(stream, "%s", pgms[i].name);
+		print_text(stream, "%s", pgms[i].name);
 		i++;
 	}
-	fprintf(stream, ")\n");
-	fprintf(stream, "\t-S serialno    Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
-	fprintf(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
-	fprintf(stream, "\t-p partno      Specify STM8 device\n");
-	fprintf(stream, "\t-l             List supported STM8 devices\n");
-	fprintf(stream, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
-	fprintf(stream, "\t-b bytes       Specify number of bytes\n");
-	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
-	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
-	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
-	fprintf(stream, "\t-V             Print Date(YearMonthDay-Version) and Version format is IE: 20171204-1.0\n");
-	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
+	print_text(stream, ")\n");
+	print_text(stream, "\t-S serialno    Specify programmer's serial number. If not given and more than one programmer is available, they'll be listed.\n");
+	print_text(stream, "\t-d port        Specify the serial device for espstlink (default: /dev/ttyUSB0)\n");
+	print_text(stream, "\t-p partno      Specify STM8 device\n");
+	print_text(stream, "\t-l             List supported STM8 devices\n");
+	print_text(stream, "\t-s memtype     Specify memory type (flash, eeprom, ram, opt or explicit address)\n");
+	print_text(stream, "\t-b bytes       Specify number of bytes\n");
+	print_text(stream, "\t-r <filename>  Read data from device to file\n");
+	print_text(stream, "\t-w <filename>  Write data from file to device\n");
+	print_text(stream, "\t-v <filename>  Verify data in device against file\n");
+	print_text(stream, "\t-V             Print Date(YearMonthDay-Version) and Version format is IE: 20171204-1.0\n");
+	print_text(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
 }
 
 void print_version_and_exit( bool err) {
 	FILE *stream = err ? stderr : stdout;
-	fprintf(stream, "%s-%s\n%s",VERSION_RELASE_DATE, VERSION, VERSION_NOTES );
+	print_text(stream, "%s-%s\n%s",VERSION_RELASE_DATE, VERSION, VERSION_NOTES );
 	exit(-err);
 }
 
 
 void spawn_error(const char *msg) {
-	fprintf(stderr, "%s\n", msg);
+	print_text(stderr, "%s\n", msg);
 	exit(-1);
 }
 
@@ -147,7 +153,7 @@ void dump_pgms(programmer_t *pgms) {
 	// Dump programmers list in stderr
 	int i;
 	for(i = 0; pgms[i].name; i++)
-		fprintf(stderr, "%s\n", pgms[i].name);
+		print_text(stderr, "%s\n", pgms[i].name);
 }
 
 bool is_ext(const char *filename, const char *ext) {
@@ -209,7 +215,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 		// no serialno given
 		if(!pgm_serialno_specified) {
-			fprintf(stderr, "WARNING: More than one programmer found but no serial number given. Programmer 1 will be used:\n");
+			print_text(stderr, "WARNING: More than one programmer found but no serial number given. Programmer 1 will be used:\n");
 			pgm->dev_handle = libusb_open_device_with_vid_pid(ctx, pgm->usb_vid, pgm->usb_pid);
 		}
 
@@ -232,7 +238,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				// print programmer data if no serial number specified
 				if(!pgm_serialno_specified) {
-					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
+					print_text(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
 				}
 				else
 				{
@@ -247,7 +253,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 		}
 		if(pgm_serialno_specified && i==cnt) {
-			fprintf(stderr, "ERROR: No programmer with serial number %s found.\n", pgm_serialno);
+			print_text(stderr, "ERROR: No programmer with serial number %s found.\n", pgm_serialno);
 			return(false);
 		}
 	}
@@ -388,7 +394,7 @@ int main(int argc, char **argv) {
 	if(argc <= 1)
 		print_help_and_exit(argv[0], true);
 	if(pgm_specified && !pgm) {
-		fprintf(stderr, "No valid programmer specified. Possible values are:\n");
+		print_text(stderr, "No valid programmer specified. Possible values are:\n");
 		dump_pgms( (programmer_t *) &pgms);
 		exit(-1);
 	}
@@ -396,7 +402,7 @@ int main(int argc, char **argv) {
 		spawn_error("No programmer has been specified");
 	pgm->port = port;
 	if(part_specified && !part) {
-		fprintf(stderr, "No valid part specified. Use -l to see the list of supported devices.\n");
+		print_text(stderr, "No valid part specified. Use -l to see the list of supported devices.\n");
 		exit(-1);
 	}
 	if(!part)
@@ -427,7 +433,7 @@ int main(int argc, char **argv) {
 		if(!bytes_count_specified || bytes_count > part->ram_size) {
 			bytes_count = part->ram_size;
 		}
-		fprintf(stderr, "Determine RAM area\r\n");
+		print_text(stderr, "Determine RAM area\r\n");
 		break;
 	case EEPROM:
 		if(!start_addr_specified) {
@@ -437,7 +443,7 @@ int main(int argc, char **argv) {
 		if(!bytes_count_specified || bytes_count > part->eeprom_size) {
 			bytes_count = part->eeprom_size;
 		}
-		fprintf(stderr, "Determine EEPROM area\r\n");
+		print_text(stderr, "Determine EEPROM area\r\n");
 		break;
 	case FLASH:
 		if(!start_addr_specified) {
@@ -447,7 +453,7 @@ int main(int argc, char **argv) {
 		if(!bytes_count_specified || bytes_count > part->flash_size) {
 			bytes_count = part->flash_size;
 		}
-		fprintf(stderr, "Determine FLASH area\r\n");
+		print_text(stderr, "Determine FLASH area\r\n");
 		break;
 	case OPT:
 		if(!start_addr_specified) {
@@ -458,7 +464,7 @@ int main(int argc, char **argv) {
 		if(!bytes_count_specified || bytes_count > opt_size) {
 			bytes_count = opt_size;
 		}
-		fprintf(stderr, "Determine OPT area\r\n");
+		print_text(stderr, "Determine OPT area\r\n");
 		break;
 	case UNKNOWN:
 		;
@@ -481,18 +487,17 @@ int main(int argc, char **argv) {
 		fileformat = INTEL_HEX;
 	else if(is_ext(filename, ".s19") || is_ext(filename, ".s8") || is_ext(filename, ".srec"))
 		fileformat = MOTOROLA_S_RECORD;
-	fprintf(stderr, "Due to its file extension (or lack thereof), \"%s\" is considered as %s format!\n", filename, fileformat == INTEL_HEX ? "INTEL HEX" : (fileformat == MOTOROLA_S_RECORD ? "MOTOROLA S-RECORD" : "RAW BINARY"));
+	print_text(stderr, "Due to its file extension (or lack thereof), \"%s\" is considered as %s format!\n", filename, fileformat == INTEL_HEX ? "INTEL HEX" : (fileformat == MOTOROLA_S_RECORD ? "MOTOROLA S-RECORD" : "RAW BINARY"));
 
 	FILE *f;
 	if(action == READ) {
-		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
-		fflush(stderr);
+		print_text(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
 		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
 		if(recv < bytes_count_align) {
-			fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+			print_text(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
 			spawn_error("Failed to read MCU");
 		}
 		if(!(f = fopen(filename, (fileformat == RAW_BINARY) ? "wb" : "w")))
@@ -510,18 +515,17 @@ int main(int argc, char **argv) {
 			fwrite(buf, 1, bytes_count, f);
 		}
 		fclose(f);
-		fprintf(stderr, "OK\n");
-		fprintf(stderr, "Bytes received: %d\n", bytes_count);
+		print_text(stderr, "OK\n");
+		print_text(stderr, "Bytes received: %d\n", bytes_count);
 	} else if (action == VERIFY) {
-		fprintf(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
-		fflush(stderr);
+		print_text(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
 
 		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
 		int recv = pgm->read_range(pgm, part, buf, start, bytes_count_align);
 		if(recv < bytes_count_align) {
-			fprintf(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
+			print_text(stderr, "\r\nRequested %d bytes but received only %d.\r\n", bytes_count_align, recv);
 			spawn_error("Failed to read MCU");
 		}
 
@@ -553,10 +557,10 @@ int main(int argc, char **argv) {
 		fclose(f);
 
 		if(memcmp(buf, buf2, bytes_to_verify) == 0) {
-			fprintf(stderr, "OK\n");
-			fprintf(stderr, "Bytes verified: %d\n", bytes_to_verify);
+			print_text(stderr, "OK\n");
+			print_text(stderr, "Bytes verified: %d\n", bytes_to_verify);
 		} else {
-			fprintf(stderr, "FAILED\n");
+			print_text(stderr, "FAILED\n");
 			exit(-1);
 		}
 
@@ -590,7 +594,7 @@ int main(int argc, char **argv) {
 			fseek(f, 0, SEEK_SET);
 			fread(buf, 1, bytes_to_write, f);
 		}
-		fprintf(stderr, "%d bytes at 0x%x... ", bytes_to_write, start);
+		print_text(stderr, "%d bytes at 0x%x... ", bytes_to_write, start);
 
 		/* flashing MCU */
 		int sent = pgm->write_range(pgm, part, buf, start, bytes_to_write, memtype);
@@ -598,8 +602,8 @@ int main(int argc, char **argv) {
 			// Restarting core (if applicable)
 			pgm->reset(pgm);
 		}
-		fprintf(stderr, "OK\n");
-		fprintf(stderr, "Bytes written: %d\n", sent);
+		print_text(stderr, "OK\n");
+		print_text(stderr, "Bytes written: %d\n", sent);
 		fclose(f);
 	} else if (action == UNLOCK) {
 		int bytes_to_write=part->option_bytes_size;
@@ -629,8 +633,8 @@ int main(int argc, char **argv) {
 			// Restarting core (if applicable)
 			pgm->reset(pgm);
 		}
-		fprintf(stderr, "Unlocked device. Option bytes reset to default state.\n");
-		fprintf(stderr, "Bytes written: %d\n", sent);
+		print_text(stderr, "Unlocked device. Option bytes reset to default state.\n");
+		print_text(stderr, "Bytes written: %d\n", sent);
 	}
 	return(0);
 }
