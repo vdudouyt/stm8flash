@@ -74,7 +74,7 @@ const stm8_device_t stm8_devices[] = {
         REGS_STM8S
     },
     {
-        .name = "stm8af52a?",
+        .name = "stm8af52a8",
         .ram_start = 0x0000,
         .ram_size = 6*1024,
         .eeprom_start = 0x4000,
@@ -83,7 +83,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 128*1024,
         .flash_block_size = 128,
         .option_bytes_size = 128,
-        .read_out_protection_mode = ROP_STM8S,//ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8S
     },
     {
