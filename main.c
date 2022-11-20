@@ -155,8 +155,9 @@ bool is_ext(const char *filename, const char *ext) {
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
-void serialno_to_hex(const char *serialno, char *serialno_hex) {
-	for(int i=0;i<strlen(serialno);i++)
+void serialno_to_hex(const char *serialno, const int length, char *serialno_hex) {
+	*serialno_hex = '\0';
+	for(int i=0;i<length;i++)
 	{
 		serialno_hex += sprintf(serialno_hex, "%02X", serialno[i]);
 	}
@@ -227,8 +228,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
-				libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
-				serialno_to_hex(serialno, serialno_hex);
+				const int serialno_length = libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+				serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 				// print programmer data if no serial number specified
 				if(!pgm_serialno_specified) {
