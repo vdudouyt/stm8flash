@@ -65,29 +65,35 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
   bool found_S5_rec = false;
   unsigned int expected_data_records = 0;
   unsigned int data_len = 0;
-  unsigned char temp = ' ';
   unsigned int checksum;
 
   while(fgets(line, sizeof(line), pFile)) {
     data_record = false;
     line_no++;
 
+    if (line[0] != 'S') {
+        // not an S record we skip it
+        continue;
+    }
+
+    chunk_type = line[1];
+    if (chunk_type < '0' || chunk_type > '9') {
+        ERROR2("Error while parsing SREC type at line %d\n", line_no);
+    }
+    chunk_type = chunk_type-'0';
+
+    if(chunk_type == 0x00 || chunk_type == 0x04) //Header type record or reserved. Skip!
+    {
+        continue;
+    }
+
     // Reading chunk header
     if(sscanf(line, "S%01x%02x%08x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
-      sscanf(line, "%c",&temp);
-      if(temp != 'S')
-      {
-        continue;
-      } 
       free(buf);
       ERROR2("Error while parsing SREC at line %d\n", line_no);
     }
     
-    if(chunk_type == 0x00 || chunk_type == 0x04) //Header type record or reserved. Skip!
-      {
-	continue;
-      }
-    else if(chunk_type == 0x05)
+    if(chunk_type == 0x05)
       { //This will contain the total expected number of data records. Save for error checking later
 	found_S5_rec = true;
 	if (chunk_len != 3) { // Length field must contain a 3 to be a valid S5 record.
@@ -108,6 +114,7 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
       }
     else
       {
+        // ignore other record types
 	continue;
       }
 
@@ -118,10 +125,10 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
     checksum += (chunk_addr >> 24) & 0xFF;
 
     // Reading chunk data
-    for(i = 2*(chunk_type+3); i < 2*(chunk_type+3+data_len); i +=2) {
-      if(sscanf(&(line[i]), "%02x", &byte) != 1) {
+    for(unsigned int idx = 0; idx < data_len; idx++) {
+      if(sscanf(&(line[(idx*2)+10]), "%02x", &byte) != 1) {
 	free(buf);
-	ERROR2("Error while parsing SREC at line %d byte %d\n", line_no, i);
+	ERROR2("Error while parsing SREC at line %d byte %d\n", line_no, idx*2);
       }
       checksum += byte;
 
@@ -141,8 +148,9 @@ int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int 
       if(chunk_addr + data_len > greatest_addr) {
 	greatest_addr = chunk_addr + data_len;
       }
-      buf[chunk_addr - start + (i - 8) / 2] = byte;
+      buf[chunk_addr - start + idx] = byte;
     }
+
     if(data_record) { //We found a data record. Remember this.
       number_of_records++;
     }
