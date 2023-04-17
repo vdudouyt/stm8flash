@@ -89,7 +89,7 @@ int load_srec(unsigned char *const data, const unsigned int data_len, const unsi
 	// The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
 	// The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a
 	// possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
-	const unsigned int addrmax = data_len;
+	const unsigned int addrmax = addrmin + data_len;
 	static char line[516];
 	static unsigned char bin[sizeof(line)/2];
 	int line_number = 0;
