@@ -189,7 +189,7 @@ int load_srec(unsigned char *const data, const unsigned int data_len, const unsi
 			}
 			
 			const unsigned int copy_len = data_end - data_src;
-			if (data_addr + copy_len >= addrmax) {
+			if (data_addr + copy_len > addrmax) {
 				fprintf(stderr, "address out of range on line %d\n", line_number);
 				return 0;
 			}
