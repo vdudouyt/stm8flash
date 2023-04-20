@@ -385,6 +385,10 @@ int main(int argc, char **argv) {
 				print_help_and_exit(argv[0], true);
 		}
 	}
+	if (optind < argc) {
+		// some additional unsupported arguments were given on the command line
+		print_help_and_exit(argv[0], true);
+	}
 	if(argc <= 1)
 		print_help_and_exit(argv[0], true);
 	if(pgm_specified && !pgm) {
