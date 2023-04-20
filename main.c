@@ -156,10 +156,11 @@ bool is_ext(const char *filename, const char *ext) {
 }
 
 void serialno_to_hex(const char *serialno, const int length, char *serialno_hex) {
-	*serialno_hex = '\0';
+	const char lk[] = "0123456789ABCDEF";
 	for(int i=0;i<length;i++)
 	{
-		serialno_hex += sprintf(serialno_hex, "%02X", serialno[i]);
+		serialno_hex[i*2+0] = lk[(serialno[i]>>4)&0x0f];
+		serialno_hex[i*2+1] = lk[(serialno[i]>>0)&0x0f];
 	}
 }
 
@@ -233,7 +234,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				// print programmer data if no serial number specified
 				if(!pgm_serialno_specified) {
-					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
+					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 				}
 				else
 				{
@@ -326,7 +327,7 @@ void dump_stlink_programmers(void) {
 			serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 			// print programmer data if no serial number specified
-			fprintf(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
+			fprintf(stderr, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 			libusb_close(tempHandle);
 			numOfProgrammers++;
 		}
