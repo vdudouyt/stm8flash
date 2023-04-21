@@ -9,6 +9,214 @@
 #include "error.h"
 #include "byte_utils.h"
 
+// convert a hex encoded string of dstlen*2 to raw bytes
+// returns the number of bytes successfully decoded
+int hex2bin(unsigned char *dst, int dstlen, char *src) {
+	int count = 0;
+	for (;dstlen > 0; dstlen -= 1) {
+		const char hi = src[0];
+		const char lo = src[1];
+
+		unsigned char x = 0;
+		if (hi >= 48 && hi <= 57) {
+			x = (unsigned char)(hi) - 48;
+		} else if (hi >= 65 && hi <= 70) {
+			x = (unsigned char)(hi) - 65 + 10;
+		} else if (hi >= 97 && hi <= 102) {
+			x = (unsigned char)(hi) - 97 + 10;
+		} else {
+			return count;
+		}
+		
+		unsigned char y = 0;
+		if (lo >= 48 && lo <= 57) {
+			y = (unsigned char)(lo) - 48;
+		} else if (lo >= 65 && lo <= 70) {
+			y = (unsigned char)(lo) - 65 + 10;
+		} else if (lo >= 97 && lo <= 102) {
+			y = (unsigned char)(lo) - 97 + 10;
+		} else {
+			return count;
+		}
+		
+		*dst = (x<<4) | y;
+
+		dst += 1;
+		src += 2;
+		count += 1;
+	}
+	return count;
+}
+
+// modified fgets to read complete lines at a time.
+// at most dst_len-1 bytes are coppied from file up to and including the newline character. reading stops at EOF or newline.;
+char *fgetss(char *const org, const unsigned int dst_len, FILE *const fp) {
+	int c = 0;
+	char *dst = org;
+	const char *const end = dst + dst_len - 1;
+
+	do {
+		c = fgetc(fp);
+		if (c == EOF) {
+			break;
+		}
+		
+		if (dst < end) {
+			*dst = c;
+			dst += 1;
+			*dst = '\0';
+		}
+	} while ((c != EOF) && (c != '\n'));
+
+	if (org < dst) {
+		return org;
+	} else {
+		return NULL;
+	}
+}
+
+// parse the srec data from file `fp` into `data`; a buffer where data[0] corresponds to the byte at address `startaddr`
+int load_srec(unsigned char *const data, const unsigned int data_len, const unsigned int startaddr, FILE *const fp) {
+	// A SRECORD has one of the following formats
+	// SXLLAAAADDDD....DDCC
+	// SXLLAAAAAADDDD....DDCC
+	// SXLLAAAAAAAADDDD....DDCC
+	// Where S is the letter 'S', X is a single digit indicating the record type, LL is the length of the
+	// record from the start of the address field through the checksum (i.e. the length of the rest of the
+	// record), AAAA[AA[AA]] is the address field and can be 16, 24 or 32 bits depending on the record type,
+	// DD is the data for the record (and optional for an S0 record, and not present in some other records),
+	// anc CC is the ones complement chechsum of the bytes starting at LL up to the last DD byte.
+	// The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
+	// The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a
+	// possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
+	const unsigned int addrmax = startaddr + data_len;
+	static char line[516];
+	static unsigned char bin[sizeof(line)/2];
+	int line_number = 0;
+	unsigned int greatest_addr = 0;
+	while (fgetss(line, sizeof(line), fp)) {
+		line_number += 1;
+
+		// header and type
+		if (line[0] != 'S') {
+			// not an S record
+			continue;
+		}
+		
+		const char record_type = line[1];
+		if ((record_type == '4') || (record_type > '9')) {
+			fprintf(stderr, "line %d: record_type %d is not supported\n", line_number, record_type);
+			return 0;
+		}
+		
+		// decode
+		const int srclen = strlen(line);		
+		const int dstlen = (srclen-2)/2;
+		const int count = hex2bin(bin, dstlen, &line[2]);
+		if (count < 1) {
+			fprintf(stderr, "line %d: bad srec record\n", line_number);
+			return 0;
+		}
+		
+		// check record length
+		const int record_len = bin[0];
+		if (record_len > count) {
+			fprintf(stderr, "line %d: bad srec record\n", line_number);
+			return 0;
+		}
+		
+		// check csum
+		unsigned char csum = 0;
+		for (int i = 0; i < count - 1; i++) {
+			csum += bin[i];
+		}
+		csum = 0xFF - csum;
+		if (csum != bin[count - 1]) {
+			fprintf(stderr, "line %d: csum: %02X != %02X\n", line_number, csum, bin[count - 1]);
+			return 0;
+		}
+		
+		// find address and actual data to copy
+		unsigned char *data_src = bin + 1; // strip length byte
+		unsigned char *const data_end = bin + record_len; // points to checksum
+		unsigned int data_addr;
+		
+		if (record_type == '0') {
+			// header
+			data_src = NULL;
+		} else if (record_type == '1') {
+			// data 16 bit addr
+			data_addr = ((unsigned int)data_src[0]<<8) | data_src[1];
+			data_src += 2; // skip addr
+		} else if (record_type == '2') {
+			// data 24 bit addr
+			data_addr = ((unsigned int)data_src[0]<<16) | ((unsigned int)data_src[1]<<8) | data_src[2];
+			data_src += 3; // skip addr
+		} else if (record_type == '3') {
+			// data 32 bit addr
+			data_addr = ((unsigned int)data_src[0]<<24) | ((unsigned int)data_src[1]<<16) | ((unsigned int)data_src[2]<<8) | data_src[3];
+			data_src += 4; // skip addr
+		} else if (record_type == '4') {
+			// reserved
+			data_src = NULL;
+		} else if (record_type == '5') {
+			// count in 16 bits
+			data_src = NULL;
+		} else if (record_type == '6') {
+			// count in 24 bits
+			data_src = NULL;
+		} else if (record_type == '7') {
+			// execution addr 32 bit
+			data_src = NULL;
+		} else if (record_type == '8') {
+			// execution addr 24 bit
+			data_src = NULL;
+		} else if (record_type == '9') {
+			// execution addr 16 bit
+			data_src = NULL;
+		}
+
+		// copy
+		if (data_src) {
+			if (data_src >= data_end) {
+				fprintf(stderr, "bad record %d\n", line_number);
+				return 0;
+			}
+			
+			if (startaddr > data_addr) {
+				fprintf(stderr, "address out of range on line %d\n", line_number);
+				return 0;
+			}
+			
+			const unsigned int copy_len = data_end - data_src;
+			if (data_addr + copy_len > addrmax) {
+				fprintf(stderr, "address out of range on line %d\n", line_number);
+				return 0;
+			}
+
+			unsigned char *data_dst = &data[data_addr - startaddr];
+			memcpy(data_dst, data_src, copy_len);
+			
+			if (data_addr + copy_len > greatest_addr) {
+				greatest_addr = data_addr + copy_len;
+			}
+		}
+	}
+	
+	return greatest_addr - startaddr;
+}
+
+int srec_read(FILE *fp, unsigned char *buf, unsigned int start, unsigned int end) {
+	if (end < start) {
+		return 0;
+	}
+	
+	fseek(fp, 0, SEEK_SET);
+	const unsigned int data_len = end - start;
+	const unsigned int data_loaded = load_srec(buf, data_len, start, fp);
+	return data_loaded;
+}
+
 /*
  * Checksum for SRECORD.  Add all the bytes from the record length field through the data, and take
  * the ones complement.  This includes the address field, which for SRECORDs can be 2 bytes, 3 bytes or
@@ -32,142 +240,6 @@ static unsigned char srec_csum(unsigned char *buf, unsigned int length, int chun
   }
   return ~sum & 0xff;
 }
-
-
-static bool is_data_type(unsigned int chunk_type)
-{
-  return (chunk_type == 0x01 || chunk_type == 0x02 || chunk_type == 0x03);
-}
-
-
-
-int srec_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
-  // A SRECORD has one of the following formats
-  // SXLLAAAADDDD....DDCC
-  // SXLLAAAAAADDDD....DDCC
-  // SXLLAAAAAAAADDDD....DDCC
-  // Where S is the letter 'S', X is a single digit indicating the record type, LL is the length of the
-  // record from the start of the address field through the checksum (i.e. the length of the rest of the
-  // record), AAAA[AA[AA]] is the address field and can be 16, 24 or 32 bits depending on the record type,
-  // DD is the data for the record (and optional for an S0 record, and not present in some other records),
-  // anc CC is the ones complement chechsum of the bytes starting at LL up to the last DD byte.
-  // The maximum value for LL is 0xFF, indication a length from the first AA byte through CC byte of 255.
-  // The maximum total length in characters would then be 4 (for the SXLL characters) plus 255 * 2 plus a
-  // possible carriage return and line feed.  This would then be 4+510+2, or 516 characters.
-  static char line[516];
-
-  fseek(pFile, 0, SEEK_SET);
-
-  unsigned int chunk_len, chunk_addr, chunk_type, i, byte, line_no = 0, greatest_addr = 0;
-  unsigned int number_of_records = 0;
-
-  bool data_record = false;
-  bool found_S5_rec = false;
-  unsigned int expected_data_records = 0;
-  unsigned int data_len = 0;
-  unsigned char temp = ' ';
-  unsigned int checksum;
-
-  while(fgets(line, sizeof(line), pFile)) {
-    data_record = false;
-    line_no++;
-
-    // Reading chunk header
-    if(sscanf(line, "S%01x%02x%08x", &chunk_type, &chunk_len, &chunk_addr) != 3) {
-      sscanf(line, "%c",&temp);
-      if(temp != 'S')
-      {
-        continue;
-      } 
-      free(buf);
-      ERROR2("Error while parsing SREC at line %d\n", line_no);
-    }
-    
-    if(chunk_type == 0x00 || chunk_type == 0x04) //Header type record or reserved. Skip!
-      {
-	continue;
-      }
-    else if(chunk_type == 0x05)
-      { //This will contain the total expected number of data records. Save for error checking later
-	found_S5_rec = true;
-	if (chunk_len != 3) { // Length field must contain a 3 to be a valid S5 record.
-	  ERROR2("Error while parsing S5 Record at line %d\n", line_no);
-	}
-	//The expected total number of data records is saved in S503<addr> field.
-	//Address is only 2 byte long and checksum is also read as part of the address, so we need to strip it.
-	chunk_type = 1;
-	chunk_addr = chunk_addr >> 8;
-	expected_data_records = chunk_addr;
-	data_len = 0;
-      }
-    else if(is_data_type(chunk_type))
-      {
-	data_record = true;
-	chunk_addr = chunk_addr >> (8*(3-chunk_type));
-	data_len = chunk_len - chunk_type - 2; // See https://en.wikipedia.org/wiki/SREC_(file_format)#Record_types
-      }
-    else
-      {
-	continue;
-      }
-
-    checksum = chunk_len;
-    checksum += (chunk_addr >> 0) & 0xFF;
-    checksum += (chunk_addr >> 8) & 0xFF;
-    checksum += (chunk_addr >> 16) & 0xFF;
-    checksum += (chunk_addr >> 24) & 0xFF;
-
-    // Reading chunk data
-    for(i = 2*(chunk_type+3); i < 2*(chunk_type+3+data_len); i +=2) {
-      if(sscanf(&(line[i]), "%02x", &byte) != 1) {
-	free(buf);
-	ERROR2("Error while parsing SREC at line %d byte %d\n", line_no, i);
-      }
-      checksum += byte;
-
-      if(!data_record) {
-	// The only data records have to be processed
-	continue;
-      }
-
-      if(chunk_addr < start) {
-	free(buf);
-	ERROR2("Address %08x is out of range at line %d\n", chunk_addr, line_no);
-      }
-      if(chunk_addr + data_len > end) {
-	free(buf);
-	ERROR2("Address %08x + %d is out of range at line %d\n", chunk_addr, data_len, line_no);
-      }
-      if(chunk_addr + data_len > greatest_addr) {
-	greatest_addr = chunk_addr + data_len;
-      }
-      buf[chunk_addr - start + (i - 8) / 2] = byte;
-    }
-    if(data_record) { //We found a data record. Remember this.
-      number_of_records++;
-    }
-
-    i = 2*(chunk_type+3+data_len);
-    if(sscanf(&(line[i]), "%02x", &byte) != 1) {
-      free(buf);
-      ERROR2("Error while reading checksum at line %d byte %d\n", line_no, i);
-    }
-    checksum += byte;
-
-    if ((checksum & 0xFF) != 0xFF) {
-      ERROR2("Invalid checksum at line %d\n", line_no);
-    }
-  }
-
-  //Check to see if the number of data records expected is the same as we actually read.
-  if(found_S5_rec && number_of_records != expected_data_records) {
-    ERROR2("Error while comparing S5 record (number of data records: %d) with the number actually read: %d\n", expected_data_records, number_of_records);
-  }
-
-  return(greatest_addr - start);
-
-}
-
 
 void srec_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end) {
     int data_rectype = 1;  // Use S1 records if possible
