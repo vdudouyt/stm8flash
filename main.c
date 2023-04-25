@@ -162,6 +162,8 @@ void serialno_to_hex(const char *serialno, const int length, char *serialno_hex)
 		serialno_hex[i*2+0] = lk[(serialno[i]>>4)&0x0f];
 		serialno_hex[i*2+1] = lk[(serialno[i]>>0)&0x0f];
 	}
+	if (!strncmp (serialno_hex, "303030303030303030303031", 2 * length))
+		fprintf (stderr, "WARNING: Serial Number 303030303030303030303031 is most likely an invalid number reported due to a bug in older programmer firmware versions.\n");
 }
 
 bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno) {
@@ -327,7 +329,7 @@ void dump_stlink_programmers(void) {
 			serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 			// print programmer data if no serial number specified
-			fprintf(stderr, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
+			fprintf(stdout, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 			libusb_close(tempHandle);
 			numOfProgrammers++;
 		}
