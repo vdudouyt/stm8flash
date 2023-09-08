@@ -338,7 +338,7 @@ data = [
 	'FLASH_DM_CSR2'     :0x00007F99,
 },
 {
-	'name'              :'ROP_AA_DIS?',
+	'name'              :'stm8al314??',
 	'ram_start'         :0x00000000,
 	'ram_size'          :0x00000800,
 	'eeprom_start'      :0x00001000,
