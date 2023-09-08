@@ -23,13 +23,16 @@
 #ifndef IHEX_H
 #define IHEX_H
 
+#include <stdio.h>
+
+#include "region.h"
+
 // Read Intel hex file.
 // Returns number of bytes read on success, -1 otherwise.
-int ihex_read(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end);
+int32_t ihex_read(FILE *pFile, struct region **r);
 
 // Write Intel hex file.
 // Returns 0 on success, -1 otherwise.
-int ihex_write(FILE *pFile, unsigned char *buf, unsigned int start, unsigned int end);
+int32_t ihex_write(FILE *pFile, struct region *r);
 
 #endif
-

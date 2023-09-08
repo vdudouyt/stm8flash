@@ -1,0 +1,18 @@
+#ifndef SWIM_H
+#define SWIM_H
+#define SWIM_CSR 0x7F80
+#define SWIM_CSR_SAFE_MASK 0x80
+#define SWIM_CSR_NO_ACCESS 0x40
+#define SWIM_CSR_SWIM_DM 0x20
+#define SWIM_CSR_HS  0x10
+#define SWIM_CSR_OSCOFF 0x08
+#define SWIM_CSR_RST 0x04
+#define SWIM_CSR_HSIT 0x02
+#define SWIM_CSR_PRI 0x01
+
+#define SWIM_DM_CSR2 0x7F99
+#define SWIM_DM_CSR2_SWBRK 0x20
+#define SWIM_DM_CSR2_SWBKF 0x10
+#define SWIM_DM_CSR2_STALL 0x08
+#define SWIM_DM_CSR2_FLUSH 0x01
+#endif
