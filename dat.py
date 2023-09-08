@@ -1431,8 +1431,8 @@ data = [
 },
 ]
 
-for p in data:
-	print(p['option_bytes_size'], p['option_bytes_size'], p['rop_mode'])
+#for p in data:
+#	print(p['option_bytes_size'], p['option_bytes_size'], p['rop_mode'])
 #exit(0)
 
 verbatum_keys = ['rop_mode']
