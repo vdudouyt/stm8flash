@@ -9,8 +9,7 @@ For years, it was the only program that's able to communicate through the SWIM i
 Since 2018, OpenOCD also offers the basic functionality, and also has support for on-target debugging.
 As of early 2018, stm8flash has wider device support, and better support for memory read/write operations.
 
-This is a fork of the original 
-
+This is a fork and rewrite of https://github.com/vdudouyt/stm8flash 
 
 Synopsis
 --------
@@ -75,6 +74,10 @@ UNLOCK example:
 ```nohighlight
 ./stm8flash -p stm8s003f3 -u
 ```
+
+Supported programming adapters
+-------------
+Currently only the stlinkv2 is supported.
 
 Supported parts
 -------------
