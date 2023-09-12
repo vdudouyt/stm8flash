@@ -3,6 +3,8 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 extern int g_dbg_level;
 #define DBG(...) do { if (g_dbg_level > 1) { _out(__FUNCTION__, __LINE__, "  DBG", __VA_ARGS__); } } while(0)

@@ -393,11 +393,13 @@ static int swim_connect(struct adapter *adp) {
 
 	// pull reset line. Some parts don't have this but we do it anyway
 	//FIXME: reset may remain asserted if any of the following commands fail
+	DBG("RESET LOW");
 	if (swim_assert_reset(adp)) {
 		ERR("communication failed");
 		return -1;
 	}
 
+	DBG("SWIM ENTER");
 	// we use the enter sequence to get access to the SWIM module
 	if (swim_enter_seq(adp)) {
 		return -1;
@@ -427,6 +429,7 @@ static int swim_connect(struct adapter *adp) {
 	}
 	
 	// release reset
+	DBG("RESET HIGH");
 	if (swim_deassert_reset(adp)) {
 		ERR("communication failed");
 		return -1;

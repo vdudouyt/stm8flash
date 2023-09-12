@@ -1023,7 +1023,7 @@ int main(int argc, char **argv) {
 		
 		struct region *slice_regions = determine_regions(slice, part);
 		if (!slice_regions) {
-			ERR("unable to determine which regions to read");
+			ERR("unable to determine which regions to write");
 			return -1;
 		}
 
@@ -1034,14 +1034,20 @@ int main(int argc, char **argv) {
 		}
 
 		if (arguments.fmt == FORMAT_BINARY) {
+			DBG("shifting binary input to 0x%08X", slice_regions->start);
 			// binaries start at 0x0000. shift the regiouns so that it starts at the user provided region
 			region_shift(file_regions, slice_regions->start);
 		}
-
+		
+		INFO("--- FILE REGIONS ---");
+		for (struct region *t = file_regions; t; t = t->next) {
+			INFO("REGION: [0x%08X:0x%08X]", t->start, t->end);
+		}
+		
 		// compute intersection
 		struct region *write_regions = region_intersection(slice_regions, file_regions);
 		if (!write_regions) {
-			ERR("unable to determine which regions to read");
+			ERR("unable to determine which regions to write");
 			return -1;
 		}
 

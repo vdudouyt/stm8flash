@@ -1,4 +1,5 @@
 #include "region.h"
+#include "error.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,8 +73,11 @@ int region_add_data(struct region **r, uint32_t start, const uint8_t *b, uint32_
 			blen -= copylen;
 			start += copylen;
 		} else if ((*r)->end >= start && start >= (*r)->start) {
-			fprintf(stderr, "overlapping regions detected\n");
+			ERR("overlapping regions detected! [0x%08X:0x%08X] clashes with [0x%08X:0x%08X]", start, start+blen, (*r)->end, (*r)->start);
 			return -1;
+		}
+		if (blen == 0) {
+			break;
 		}
 	}
 
@@ -90,7 +94,7 @@ int region_add_data(struct region **r, uint32_t start, const uint8_t *b, uint32_
 int region_add_empty(struct region **r, uint32_t start, uint32_t blen) {
 	uint8_t *const data = malloc(blen); // FIXME: remove
 	if (!data) {
-		fprintf(stderr, "malloc\n");
+		ERR("malloc");
 		return -1;
 	}
 
@@ -146,6 +150,7 @@ struct region *region_intersection(struct region *dst, struct region *src) {
 					const uint32_t copylen = min(d->end - start, s->end - start);
 					// create new region
 					if (region_add_data(&r, start, &s->b[start - s->start], copylen)) {
+						ERR("malloc");
 						region_free(&r);
 						return NULL;
 					}
