@@ -899,7 +899,7 @@ int main(int argc, char **argv) {
 
 	if (arguments.unlock) {
 		if (stm8_disable_rop(pgm, part)) {
-			ERR("failed to enable readout protection");
+			ERR("failed to disable readout protection");
 			return -1;
 		}
 		INFO("UNLOCK SUCCESS (ROP)");
