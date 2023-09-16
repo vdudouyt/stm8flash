@@ -12,6 +12,7 @@ static inline uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
 void region_shift(struct region *r, uint32_t offx) {
 	for (;r; r = r->next) {
 		r->start += offx;
+		r->end += offx;
 	}
 }
 
