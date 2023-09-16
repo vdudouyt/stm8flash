@@ -25,11 +25,16 @@
 #define STM8_REG_CC   0x7F0A
 
 static inline int swim_write_byte(struct adapter *adp, uint8_t byte, uint32_t addr) {
+	DBG("WRITE *0x%04X = 0x%02X", addr, byte);
 	return adp->swim_wotf(adp, &byte, 1, addr);
 }
 
 static inline int swim_read_byte(struct adapter *adp, uint32_t addr, uint8_t *byte) {
-	return adp->swim_rotf(adp, addr, byte, 1);
+	int ret = adp->swim_rotf(adp, addr, byte, 1);
+	if (ret == 0) {
+		DBG("READ *0x%04X == 0x%02X", addr, *byte);
+	}
+	return ret;
 }
 
 static inline int swim_write_block(struct adapter *adp, const uint8_t *byte, uint32_t length, uint32_t addr) {
@@ -40,7 +45,7 @@ static inline int swim_read_block(struct adapter *adp, uint32_t addr, uint8_t *b
 	return adp->swim_rotf(adp, addr, byte, length);
 }
 
-int stm8_dump_regs(struct adapter *adp, const struct stm8_part *device) {
+int stm8_dump_regs(struct adapter *adp, const struct stm8_part *part) {
 	uint8_t buf[13];
 	if (adp->swim_rotf(adp, STM8_REG_A, buf, 11)) {
 		// error
@@ -78,7 +83,7 @@ int stm8_dump_regs(struct adapter *adp, const struct stm8_part *device) {
 	return 0;
 }
 
-int stm8_reset(struct adapter *adp, const struct stm8_part *device) {
+int stm8_reset(struct adapter *adp, const struct stm8_part *part) {
 	// SWIM srst only works when the device is in debug mode
 	uint8_t csr;
 	if (adp->swim_rotf(adp, SWIM_CSR, &csr, 1)) {
@@ -116,7 +121,7 @@ int stm8_reset(struct adapter *adp, const struct stm8_part *device) {
 	return 0;
 }
 
-static int wait_for_eop(struct adapter *adp, const struct stm8_part *device) {
+static int wait_for_eop(struct adapter *adp, const struct stm8_part *part) {
 	DBG("----!WAIT FOR EOP!----");
 	// Wait for EOP to be set in FLASH_IAPSR
 	// t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
@@ -126,7 +131,7 @@ static int wait_for_eop(struct adapter *adp, const struct stm8_part *device) {
 	int retries = 5;
 	while (retries > 0) {
 		uint8_t iapsr;
-		if (swim_read_byte(adp, device->FLASH_IAPSR, &iapsr)) {
+		if (swim_read_byte(adp, part->FLASH_IAPSR, &iapsr)) {
 			ERR("FAIL");
 			return -1;
 		}
@@ -148,17 +153,17 @@ static int wait_for_eop(struct adapter *adp, const struct stm8_part *device) {
 	return 0;
 }
 
-int stm8_write_block(struct adapter *const adp, const struct stm8_part *const device, const uint8_t *buf, uint32_t length, uint32_t addr, memtype_t memtype, int fast) {
-	assert(addr % device->flash_block_size == 0);
-	assert(length == device->flash_block_size);
+int stm8_write_block(struct adapter *const adp, const struct stm8_part *const part, const uint8_t *buf, uint32_t length, uint32_t addr, memtype_t memtype, int fast) {
+	assert(addr % part->flash_block_size == 0);
+	assert(length == part->flash_block_size);
 
 	// flast clock
-	if (swim_write_byte(adp, 0x00, device->CLK_CKDIVR)) {
+	if (swim_write_byte(adp, 0x00, part->CLK_CKDIVR)) {
 		ERR("FAIL");
-		exit(-1);
+		return -1;
 	}
 
-	DBG("have fast clock\n\n\n");
+	DBG("have fast clock");
 
 	// Stall the cpu before doing any block programming
 	uint8_t csr;
@@ -171,25 +176,37 @@ int stm8_write_block(struct adapter *const adp, const struct stm8_part *const de
 		return -1;
 	}
 
-	INFO("PROGRESS [0x%08X: 0x%08X]", addr, addr + device->flash_block_size);
+	INFO("PROGRESS [0x%08X: 0x%08X]", addr, addr + part->flash_block_size);
 
 	// Set programming mode
 	if (memtype == MEM_FLASH || memtype == MEM_EEPROM) {
 		const uint8_t prgmode = fast ? 0x10 : 0x01;
 		if (prgmode == 0x10) {
-			INFO("FAST BB0CK PROG");
+			INFO("FAST BLOCK PROG");
 		} else {
-			INFO("STANDARD BB0CK PROG");
+			INFO("STANDARD BLOCK PROG");
 		}
 
-		if (swim_write_byte(adp, prgmode, device->FLASH_CR2)) {
+		if (swim_write_byte(adp, prgmode, part->FLASH_CR2)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
-		if (device->FLASH_NCR2 != 0) {
-			if (swim_write_byte(adp, ~prgmode, device->FLASH_NCR2)) {
+		if (part->FLASH_NCR2 != 0) {
+			if (swim_write_byte(adp, ~prgmode, part->FLASH_NCR2)) {
 				ERR("FAIL");
-				exit(-1);
+			return -1;
+			}
+		}
+	} else if (memtype == MEM_OPT) {
+		const uint8_t cr2 = 0x80;
+		if (swim_write_byte(adp, cr2, part->FLASH_CR2)) {
+			ERR("FAIL");
+			return -1;
+		}
+		if (part->FLASH_NCR2 != 0) {
+			if (swim_write_byte(adp, 0xFF^cr2, part->FLASH_NCR2)) {
+				ERR("FAIL");
+				return -1;
 			}
 		}
 	}
@@ -197,35 +214,52 @@ int stm8_write_block(struct adapter *const adp, const struct stm8_part *const de
 	// Unlock MASS
 	if (memtype == MEM_FLASH) {
 		DBG("write range: unlock FLASH");
-		if (swim_write_byte(adp, 0x56, device->FLASH_PUKR)) {
+		if (swim_write_byte(adp, 0x56, part->FLASH_PUKR)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
-		if (swim_write_byte(adp, 0xae, device->FLASH_PUKR)) {
+		if (swim_write_byte(adp, 0xae, part->FLASH_PUKR)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
 	} else if (memtype == MEM_EEPROM || memtype == MEM_OPT) {
 		DBG("write range: unlock EEPROM");
-		if (swim_write_byte(adp, 0xae, device->FLASH_DUKR)) {
+		if (swim_write_byte(adp, 0xae, part->FLASH_DUKR)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
-		if (swim_write_byte(adp, 0x56, device->FLASH_DUKR)) {
+		if (swim_write_byte(adp, 0x56, part->FLASH_DUKR)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
 	}
 
-	// block-based writing
-	if (swim_write_block(adp, buf, device->flash_block_size, addr)) {
-		// error
-		ERR("SWIM WRITE FAILED");
-		return -1;
+	if (memtype == MEM_OPT) {
+		for (int i = 0; i < part->flash_block_size; i++) {
+			if (swim_write_byte(adp, buf[i], addr+i)) {
+				ERR("FAIL");
+				return -1;
+			}
+			if (wait_for_eop(adp, part)) {
+				ERR("FAIL");
+				return -1;
+			}
+		}
+	} else {
+		// block-based writing
+		if (swim_write_block(adp, buf, part->flash_block_size, addr)) {
+			// error
+			ERR("SWIM WRITE FAILED");
+			return -1;
+		}
+		if (wait_for_eop(adp, part)) {
+			ERR("FAIL");
+			return -1;
+		}
 	}
 
 	if (memtype == MEM_FLASH || memtype == MEM_EEPROM) {
-		if (wait_for_eop(adp, device)) {
+		if (wait_for_eop(adp, part)) {
 			ERR("FAILED TO WAIT FOR EOP");
 			return -1;
 		}
@@ -234,11 +268,11 @@ int stm8_write_block(struct adapter *const adp, const struct stm8_part *const de
 	if (memtype == MEM_FLASH || memtype == MEM_EEPROM || memtype == MEM_OPT) {
 		// Reset DUL and PUL in IAPSR to disable flash and data writes.
 		uint8_t iapsr;
-		if (swim_read_byte(adp, device->FLASH_IAPSR, &iapsr)) {
+		if (swim_read_byte(adp, part->FLASH_IAPSR, &iapsr)) {
 			ERR("FAIL");
-			exit(-1);
+			return -1;
 		}
-		swim_write_byte(adp, iapsr & (~0x0a), device->FLASH_IAPSR);
+		swim_write_byte(adp, iapsr & (~0x0a), part->FLASH_IAPSR);
 	}
 
 	return 0;
@@ -270,12 +304,13 @@ int stm8_enable_rop(struct adapter *const adp, const struct stm8_part *const par
 
 	// set the programming mode first! : RM0031 page 54 note 7
 	DBG("OPT PROG");
-	if (swim_write_byte(adp, 0x80, part->FLASH_CR2)) {
+	const uint8_t cr2 = 0x80;
+	if (swim_write_byte(adp, cr2, part->FLASH_CR2)) {
 		ERR("FAIL");
 		return -1;
 	}
 	if (part->FLASH_NCR2 != 0) {
-		if (swim_write_byte(adp, 0x75, part->FLASH_NCR2)) {
+		if (swim_write_byte(adp, 0xFF^cr2, part->FLASH_NCR2)) {
 			ERR("FAIL");
 			return -1;
 		}
@@ -293,17 +328,31 @@ int stm8_enable_rop(struct adapter *const adp, const struct stm8_part *const par
 	}
 
 	// finally lock the device by writing the ROP byte
+	const uint8_t rop_enable_value = (part->rop_mode == ROP_AA_DIS ? 0x00 : 0xAA);
+	
 	INFO("locking device.");
-	if (part->rop_mode == ROP_AA_DIS) {
-		swim_write_byte(adp, 0x00, 0x4800);
-	} else if (part->rop_mode == ROP_AA_EN) {
-		swim_write_byte(adp, 0xAA, 0x4800);
+	if (swim_write_byte(adp, rop_enable_value, 0x4800)) {
+		ERR("FAIL");
+		return -1;
 	}
+	
+	INFO("wait for EOP.");
+	if (wait_for_eop(adp, part)) {
+		ERR("FAIL");
+		return -1;
+	}
+	
+	uint8_t rop;
+	if (swim_read_byte(adp, 0x4800, &rop)) {
+		ERR("unable to verify ROP byte");
+		return -1;
+	}
+	DBG("ROP is now 0x%02X", rop);
 
 	// after the next reset the changes should take effect
 	// the datasheet says a POR reset is required for some changes to take effect
 	// we hope a simple software reset will do the trick (performed by main later)
-	return 0;
+	return rop == rop_enable_value ? 0 : -1;
 }
 
 int stm8_disable_rop(struct adapter *const adp, const struct stm8_part *const part) {
@@ -312,7 +361,7 @@ int stm8_disable_rop(struct adapter *const adp, const struct stm8_part *const pa
 
 	// set the programming mode first! : RM0031 page 54 note 7
 	DBG("OPT PROG");
-	if (swim_write_byte(adp, 0x81, part->FLASH_CR2)) {
+	if (swim_write_byte(adp, 0x80, part->FLASH_CR2)) {
 		ERR("FAIL");
 		return -1;
 	}
@@ -334,62 +383,45 @@ int stm8_disable_rop(struct adapter *const adp, const struct stm8_part *const pa
 		ERR("FAIL");
 		return -1;
 	}
+	
+	const uint8_t rop_disable_value = (part->rop_mode == ROP_AA_DIS ? 0xAA : 0x00);
 
-	if (part->rop_mode == ROP_AA_DIS) {
-		INFO("Unlocking device.");
-		if (swim_write_byte(adp, 0xAA, 0x4800)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		// wait for EOP
-		INFO("wait for EOP.");
-		if (wait_for_eop(adp, part)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		INFO("UNL0CK AGAIN");
-		if (swim_write_byte(adp, 0xAA, 0x4800)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		INFO("wait for EOP.");
-		if (wait_for_eop(adp, part)) {
-			ERR("FAIL");
-			return -1;
-		}
-	} else if (part->rop_mode == ROP_AA_EN) {
-		INFO("Unlocking device.");
-		if (swim_write_byte(adp, 0x00, 0x4800)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		// wait for EOP
-		INFO("wait for EOP.");
-		if (wait_for_eop(adp, part)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		INFO("UNL0CK AGAIN");
-		if (swim_write_byte(adp, 0x00, 0x4800)) {
-			ERR("FAIL");
-			return -1;
-		}
-
-		INFO("wait for EOP.");
-		if (wait_for_eop(adp, part)) {
-			ERR("FAIL");
-			return -1;
-		}
+	INFO("Unlocking device.");
+	if (swim_write_byte(adp, rop_disable_value, 0x4800)) {
+		ERR("FAIL");
+		return -1;
 	}
 
+	// wait for EOP
+	INFO("wait for EOP.");
+	if (wait_for_eop(adp, part)) {
+		ERR("FAIL");
+		return -1;
+	}
+
+	INFO("UNL0CK AGAIN");
+	if (swim_write_byte(adp, rop_disable_value, 0x4800)) {
+		ERR("FAIL");
+		return -1;
+	}
+
+	INFO("wait for EOP.");
+	if (wait_for_eop(adp, part)) {
+		ERR("FAIL");
+		return -1;
+	}
+
+	uint8_t rop;
+	if (swim_read_byte(adp, 0x4800, &rop)) {
+		ERR("FAIL");
+		return -1;
+	}
+	DBG("ROP: %02X", rop);
+	
 	// after the next reset the changes should take effect
 	// the datasheet says a POR reset is required for some changes to take effect
 	// we hope a simple software reset will do the trick (performed by main later)
-	return 0;
+	// 0 means success
+	return (rop == rop_disable_value) ? 0 : -1;
 }
 
