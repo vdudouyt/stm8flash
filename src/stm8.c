@@ -258,13 +258,6 @@ int stm8_write_block(struct adapter *const adp, const struct stm8_part *const pa
 		}
 	}
 
-	if (memtype == MEM_FLASH || memtype == MEM_EEPROM) {
-		if (wait_for_eop(adp, part)) {
-			ERR("FAILED TO WAIT FOR EOP");
-			return -1;
-		}
-	}
-
 	if (memtype == MEM_FLASH || memtype == MEM_EEPROM || memtype == MEM_OPT) {
 		// Reset DUL and PUL in IAPSR to disable flash and data writes.
 		uint8_t iapsr;
