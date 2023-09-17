@@ -68,8 +68,10 @@ EEPROM examples read and write verify:
 Readout protection
 -------------
 
-There are two kinds of option bytes. Those where 0xAA disables ROP and those where anything other than 0xAA enables it.
+There are two kinds of option bytes. Those where 0xAA disables ROP and those where anything other than 0xAA disables it.
+
 The stm8l050j3 is an example where writing 0xAA to the option bytes disables ROP
+
 The stm8s208mb is an example where writing 0x00 to the option bytes disables ROP
 
 stm8flash will handle both cases.
