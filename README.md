@@ -75,9 +75,9 @@ The stm8l050j3 is an example where writing 0xAA to the option bytes disables ROP
 The stm8s208mb is an example where writing 0x00 to the option bytes disables ROP
 
 stm8flash will handle both cases.
-However. On devices like the stm8s208mb, removing the ROP means clearing the option bytes.
-Without valid option bytes the main memory is not writeable.
-So prior to 
+
+However. On devices like the stm8s208mb, removing the ROP means clearing the option bytes and clearing the option bytes means that the flash is still locked.
+So prior to being able to write the flash again, one needs to write valid option bytes. The default option bytes can be read from the datasheet.
 
 The following should generally work to unlock the memories.
 Problem is that
