@@ -65,6 +65,21 @@ EEPROM examples read and write verify:
 ./stm8flash -p stm8s003f3 -v eeprom ee.bin 
 ```
 
+Readout protection
+-------------
+
+There are two kinds of option bytes. Those where 0xAA disables ROP and those where anything other than 0xAA enables it.
+The stm8l050j3 is an example where writing 0xAA to the option bytes disables ROP
+The stm8s208mb is an example where writing 0x00 to the option bytes disables ROP
+
+stm8flash will handle both cases.
+However. On devices like the stm8s208mb, removing the ROP means clearing the option bytes.
+Without valid option bytes the main memory is not writeable.
+So prior to 
+
+The following should generally work to unlock the memories.
+Problem is that
+
 LOCK example:
 ```nohighlight
 ./stm8flash -p stm8s003f3 -k
@@ -73,6 +88,9 @@ LOCK example:
 UNLOCK example:
 ```nohighlight
 ./stm8flash -p stm8s003f3 -u
+
+python3 -c "open('opt.bin', 'wb').write(b'\x00\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF\x00\xFF')"
+./stm8flash -p stm8s208mb -u -w opt opt.bin
 ```
 
 Supported programming adapters
