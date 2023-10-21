@@ -99,6 +99,7 @@ void print_help_and_exit(const char *name, bool err) {
 	int i = 0;
 	FILE *stream = err ? stderr : stdout;
 	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
+	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] -R\n", name);
 	fprintf(stream, "Options:\n");
 	fprintf(stream, "\t-?             Display this help\n");
 	fprintf(stream, "\t-c programmer  Specify programmer used (");
@@ -126,6 +127,7 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "\t-r <filename>  Read data from device to file\n");
 	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
 	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
+	fprintf(stream, "\t-R             Reset the device only\n");
 	fprintf(stream, "\t-V             Print Date(YearMonthDay-Version) and Version format is IE: 20171204-1.0\n");
 	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
@@ -356,6 +358,7 @@ int main(int argc, char **argv) {
 	int bytes_count = 0;
 	char filename[256];
 	memset(filename, 0, sizeof(filename));
+	bool need_file = true;
 	char pgm_serialno[64];
 	memset(pgm_serialno, 0, sizeof(pgm_serialno));
 	// Parsing command line
@@ -372,7 +375,7 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:luVL")) != (char)-1) {
+	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:luVLR")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -443,6 +446,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'V':
 				print_version_and_exit( (bool)0);
+				break;
+			case 'R':
+				action = RESET;
+				need_file = false;
 				break;
 			case '?':
 				print_help_and_exit(argv[0], false);
@@ -537,9 +544,9 @@ int main(int argc, char **argv) {
 		spawn_error("No action has been specified");
 	if(!start_addr_specified)
 		spawn_error("No memtype or start_addr has been specified");
-	if (!strlen(filename))
+	if (need_file && !strlen(filename))
 		spawn_error("No filename has been specified");
-	if(!action || !start_addr_specified || !strlen(filename))
+	if(!action || !start_addr_specified || (need_file && !strlen(filename)))
 		print_help_and_exit(argv[0], true);
 	if(!usb_init(pgm, pgm_serialno_specified, pgm_serialno))
 		spawn_error("Couldn't initialize stlink");
@@ -700,6 +707,10 @@ int main(int argc, char **argv) {
 		}
 		fprintf(stderr, "Unlocked device. Option bytes reset to default state.\n");
 		fprintf(stderr, "Bytes written: %d\n", sent);
+	} else if (action == RESET) {
+		fprintf(stderr, "Resetting board...\n");
+		fflush(stderr);
+		pgm->reset(pgm);
 	}
 	return(0);
 }
