@@ -522,6 +522,13 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 				DEBUG_PRINT("%swrite 0x%04x to 0x%04x\n", (prgmode == 0x10 ? "fast " : ""), start + i, start + i + device->flash_block_size);
 
 				if (memtype == FLASH || memtype == EEPROM) {
+					// Stall the CPU before entering block programming mode
+          // If the CPU keeps running and executes a software reset
+          // (e.g. due to an invalid instruction) programming fails.
+					int csr = swim_read_byte(pgm, device->regs.FLASH_DM_CSR2);
+					swim_write_byte(pgm, csr | 8, device->regs.FLASH_DM_CSR2);
+
+					// Block programming mode
 					swim_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
 					if(device->regs.FLASH_NCR2 != 0) {
 						swim_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);

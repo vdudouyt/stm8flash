@@ -8,6 +8,7 @@
         .FLASH_IAPSR = 0x505f, \
         .FLASH_CR2 = 0x505b,   \
         .FLASH_NCR2 = 0x505c,   \
+        .FLASH_DM_CSR2 = 0x7F99 \
 }
 
 // Note: FLASH_NCR2 not present on stm8l
@@ -18,6 +19,7 @@
         .FLASH_IAPSR = 0x5054, \
         .FLASH_CR2 = 0x5051,   \
         .FLASH_NCR2 = 0x0000,   \
+        .FLASH_DM_CSR2 = 0x7F99 \
 }
 
 const stm8_device_t stm8_devices[] = {

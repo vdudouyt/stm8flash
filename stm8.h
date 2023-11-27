@@ -11,6 +11,7 @@ typedef struct stm8_regs {
 	unsigned int FLASH_IAPSR;
 	unsigned int FLASH_CR2;
 	unsigned int FLASH_NCR2;
+	unsigned int FLASH_DM_CSR2;
 } stm8_regs_t;
 
 
