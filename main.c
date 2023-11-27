@@ -375,6 +375,9 @@ int main(int argc, char **argv) {
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
+
+	setbuf (stderr, 0); // Make stderr unbuffered (which is the default on POSIX anyway, but not on Windows).
+
 	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:luVLR")) != (char)-1) {
 		switch(c) {
 			case 'c':
@@ -562,7 +565,6 @@ int main(int argc, char **argv) {
 	FILE *f;
 	if(action == READ) {
 		fprintf(stderr, "Reading %d bytes at 0x%x... ", bytes_count, start);
-		fflush(stderr);
 		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
 		if(!buf) spawn_error("malloc failed");
@@ -590,7 +592,6 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Bytes received: %d\n", bytes_count);
 	} else if (action == VERIFY) {
 		fprintf(stderr, "Verifing %d bytes at 0x%x... ", bytes_count, start);
-		fflush(stderr);
 
 		int bytes_count_align = ((bytes_count-1)/256+1)*256; // Reading should be done in blocks of 256 bytes
 		unsigned char *buf = malloc(bytes_count_align);
@@ -709,7 +710,6 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Bytes written: %d\n", sent);
 	} else if (action == RESET) {
 		fprintf(stderr, "Resetting board...\n");
-		fflush(stderr);
 		pgm->reset(pgm);
 	}
 	return(0);
