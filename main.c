@@ -378,7 +378,7 @@ int main(int argc, char **argv) {
 
 	setbuf (stderr, 0); // Make stderr unbuffered (which is the default on POSIX anyway, but not on Windows).
 
-	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:luVLR")) != (char)-1) {
+	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:hluVLR")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -454,7 +454,7 @@ int main(int argc, char **argv) {
 				action = RESET;
 				need_file = false;
 				break;
-			case '?':
+			case 'h':
 				print_help_and_exit(argv[0], false);
 			default:
 				print_help_and_exit(argv[0], true);
