@@ -155,11 +155,15 @@ bool is_ext(const char *filename, const char *ext) {
 	return(ext_begin && strcmp(ext_begin, ext) == 0);
 }
 
-void serialno_to_hex(const char *serialno, char *serialno_hex) {
-	for(int i=0;i<strlen(serialno);i++)
+void serialno_to_hex(const char *serialno, const int length, char *serialno_hex) {
+	const char lk[] = "0123456789ABCDEF";
+	for(int i=0;i<length;i++)
 	{
-		serialno_hex += sprintf(serialno_hex, "%02X", serialno[i]);
+		serialno_hex[i*2+0] = lk[(serialno[i]>>4)&0x0f];
+		serialno_hex[i*2+1] = lk[(serialno[i]>>0)&0x0f];
 	}
+	if (!strncmp (serialno_hex, "303030303030303030303031", 2 * length))
+		fprintf (stderr, "WARNING: Serial Number 303030303030303030303031 is most likely an invalid number reported due to a bug in older programmer firmware versions.\n");
 }
 
 bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno) {
@@ -227,12 +231,12 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
-				libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
-				serialno_to_hex(serialno, serialno_hex);
+				const int serialno_length = libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+				serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 				// print programmer data if no serial number specified
 				if(!pgm_serialno_specified) {
-					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%s\n", numOfProgrammers, vendor, device, serialno_hex);
+					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 				}
 				else
 				{
@@ -276,6 +280,64 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 	return(true);
 }
 
+static bool is_interesting_usb(const uint16_t vid, const uint16_t pid) {
+	for (int i = 0; i < (sizeof(pgms) / sizeof(pgms[0])); i++) {
+		if ((pgms[i].usb_pid == pid) && (pgms[i].usb_vid == vid)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void dump_stlink_programmers(void) {
+	libusb_device **devs;
+	libusb_context *ctx = NULL;
+	char vendor[32];
+	char device[32];
+	char serialno[32];
+	char serialno_hex[64];
+
+	int r;
+	r = libusb_init(&ctx);
+	if(r < 0) return;
+
+	{
+	const int usb_debug_level = 0;
+#if defined(LIBUSB_API_VERSION) && (LIBUSB_API_VERSION >= 0x01000106)
+		libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, usb_debug_level);
+#else
+		libusb_set_debug(ctx, usb_debug_level);
+#endif
+	}
+
+	const int cnt = libusb_get_device_list(ctx, &devs);
+	if(cnt < 0) return;
+
+	int numOfProgrammers = 0;
+	// count available programmers
+	for (int i = 0; i < cnt; i++) {
+		struct libusb_device_descriptor desc;
+		libusb_device_handle *tempHandle;
+		libusb_get_device_descriptor(devs[i], &desc);
+
+		if (is_interesting_usb(desc.idVendor, desc.idProduct)) {
+			libusb_open(devs[i], &tempHandle);
+
+			libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
+			libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
+			const int serialno_length = libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+			serialno_to_hex(serialno, serialno_length, serialno_hex);
+
+			// print programmer data if no serial number specified
+			fprintf(stdout, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
+			libusb_close(tempHandle);
+			numOfProgrammers++;
+		}
+	}
+	
+	libusb_free_device_list(devs, 1);
+}
+
 const stm8_device_t *get_part(const char *name)
 {
 	for(unsigned int i = 0; stm8_devices[i].name; i++)
@@ -304,13 +366,13 @@ int main(int argc, char **argv) {
 		pgm_specified = false,
 		pgm_serialno_specified = false,
 		part_specified = false,
-        bytes_count_specified = false;
+		bytes_count_specified = false;
 	memtype_t memtype = FLASH;
 	const char * port = NULL;
 	int i;
 	programmer_t *pgm = NULL;
 	const stm8_device_t *part = NULL;
-	while((c = getopt (argc, argv, "r:w:v:nc:S:p:d:s:b:luV")) != (char)-1) {
+	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:luVL")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -331,6 +393,9 @@ int main(int argc, char **argv) {
 			case 'd':
 				port = strdup(optarg);
 				break;
+			case 'L':
+				dump_stlink_programmers();
+				exit(0);
 			case 'l':
 				for(i = 0; stm8_devices[i].name; i++)
 					printf("%s ", stm8_devices[i].name);
@@ -348,21 +413,21 @@ int main(int argc, char **argv) {
 				action = VERIFY;
 				strcpy(filename, optarg);
 				break;
-                        case 'u':
+			case 'u':
 				action = UNLOCK;
 				start  = 0x4800;
 				memtype = OPT;
 				strcpy(filename, "Workaround");
 				break;
 			case 's':
-                // Start addr is depending on MCU type
+				// Start addr is depending on MCU type
 				if(strcasecmp(optarg, "flash") == 0) {
 					memtype = FLASH;
-                } else if(strcasecmp(optarg, "eeprom") == 0) {
+				} else if(strcasecmp(optarg, "eeprom") == 0) {
 					memtype = EEPROM;
-                } else if(strcasecmp(optarg, "ram") == 0) {
+				} else if(strcasecmp(optarg, "ram") == 0) {
 					memtype = RAM;
-                } else if(strcasecmp(optarg, "opt") == 0) {
+				} else if(strcasecmp(optarg, "opt") == 0) {
 					memtype = OPT;
 				} else {
 					// Start addr is specified explicitely
@@ -374,16 +439,20 @@ int main(int argc, char **argv) {
 				break;
 			case 'b':
 				bytes_count = atoi(optarg);
-                bytes_count_specified = true;
+				bytes_count_specified = true;
 				break;
 			case 'V':
-                                print_version_and_exit( (bool)0);
+				print_version_and_exit( (bool)0);
 				break;
 			case '?':
-                                print_help_and_exit(argv[0], false);
+				print_help_and_exit(argv[0], false);
 			default:
 				print_help_and_exit(argv[0], true);
 		}
+	}
+	if (optind < argc) {
+		// some additional unsupported arguments were given on the command line
+		print_help_and_exit(argv[0], true);
 	}
 	if(argc <= 1)
 		print_help_and_exit(argv[0], true);

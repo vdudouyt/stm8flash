@@ -501,23 +501,34 @@ int stlink2_swim_write_range(programmer_t *pgm, const stm8_device_t *device, uns
 			if (ONLY_WRITE_DIFFS && !memcmp(current + i, buffer + i, device->flash_block_size)) {
 				DEBUG_PRINT("no change 0x%04x to 0x%04x\n", start + i, start + i + device->flash_block_size);
 			} else {
-				int prgmode = 0x10;
-				// BUG HERE : can read beyond buffer[] array boundary, because buffer is not always a multiple of flash_block_size
+				int prgmode;
+				/*
+				 * Use fast block programming (prgmode = 0x10) only if we have
+				 * read the flash block and verified that it is empty (all its
+				 * bytes are 0x00).
+				 */
+#if ONLY_WRITE_DIFFS
+				prgmode = 0x10;
 				for (int j = 0; j < device->flash_block_size; j++) {
-					if (buffer[i + j]) {
+					if (current[i + j]) {
 						prgmode = 0x01;
 						break;
 					}
 				}
+#else
+				prgmode = 0x01;
+#endif
 
 				DEBUG_PRINT("%swrite 0x%04x to 0x%04x\n", (prgmode == 0x10 ? "fast " : ""), start + i, start + i + device->flash_block_size);
 
 				if (memtype == FLASH || memtype == EEPROM) {
-					// Stall the cpu before entering block programming mode
+					// Stall the CPU before entering block programming mode
+          // If the CPU keeps running and executes a software reset
+          // (e.g. due to an invalid instruction) programming fails.
 					int csr = swim_read_byte(pgm, device->regs.FLASH_DM_CSR2);
 					swim_write_byte(pgm, csr | 8, device->regs.FLASH_DM_CSR2);
 
-					// Standard block programming mode
+					// Block programming mode
 					swim_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
 					if(device->regs.FLASH_NCR2 != 0) {
 						swim_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
