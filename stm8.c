@@ -345,7 +345,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_size = 8*1024,
         .flash_block_size = 64,
         .option_bytes_size = 9,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8L
     },
     {
@@ -409,8 +409,8 @@ const stm8_device_t stm8_devices[] = {
         .flash_start = 0x8000,
         .flash_size = 2*1024,
         .flash_block_size = 64,
-        .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .option_bytes_size = 9,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8L
     },
     {
@@ -422,8 +422,8 @@ const stm8_device_t stm8_devices[] = {
         .flash_start = 0x8000,
         .flash_size = 4*1024,
         .flash_block_size = 64,
-        .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .option_bytes_size = 9,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8L
     },
     {
@@ -435,8 +435,8 @@ const stm8_device_t stm8_devices[] = {
         .flash_start = 0x8000,
         .flash_size = 8*1024,
         .flash_block_size = 64,
-        .option_bytes_size =0,
-        .read_out_protection_mode = ROP_UNKNOWN,
+        .option_bytes_size = 9,
+        .read_out_protection_mode = ROP_STM8S,
         REGS_STM8L
     },
     {
@@ -474,7 +474,7 @@ const stm8_device_t stm8_devices[] = {
         .flash_start = 0x8000,
         .flash_size = 16*1024,
         // Flash block size 128 according to the "PM0054 Programming manual".
-	// Flash block size 64 according to the datasheet (section 9.5.3, "Memory characteristics").
+        // Flash block size 64 according to the datasheet (section 9.5.3, "Memory characteristics").
         // According to user feedback, stm8flash works with 128, but not with 64.
         .flash_block_size = 128,
         .option_bytes_size = 13,
