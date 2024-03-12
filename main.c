@@ -177,7 +177,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 	char vendor[32];
 	char device[32];
 	char serialno[32];
-	char serialno_hex[64];
+	char serialno_hex[64 + 1] = {0};
 
 
 	int r;
@@ -233,7 +233,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
-				const int serialno_length = libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+				int serialno_length = libusb_get_string_descriptor_ascii(tempHandle, desc.iSerialNumber, (unsigned char*)serialno, sizeof(serialno));
+				if (serialno_length > 32) serialno_length = 32;
 				serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 				// print programmer data if no serial number specified
