@@ -378,6 +378,7 @@ int main(int argc, char **argv) {
 	const stm8_device_t *part = NULL;
 
 	setbuf (stderr, 0); // Make stderr unbuffered (which is the default on POSIX anyway, but not on Windows).
+	setbuf (stdout, 0); // Also make stdout unbuffered (performance doesn't matter much here, bug quick progress display is useful).
 
 	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:hluVLR")) != (char)-1) {
 		switch(c) {
