@@ -49,7 +49,7 @@ endif
 override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
 BIN 		= stm8flash
-CSRCS 	= \
+CSRCS 		= \
 				byte_utils.c \
 				espstlink.c \
 				ihex.c \
@@ -58,7 +58,7 @@ CSRCS 	= \
 				stlink.c \
 				stlinkv2.c \
 				stm8.c \
-   				main.c
+				main.c
 
 OBJECTS 	=$(addprefix $(OBJDIR)/, $(CSRCS:.c=.o))
 
