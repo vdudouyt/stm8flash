@@ -271,7 +271,7 @@ static void swim_cmd_internal(programmer_t *pgm, unsigned char *buf, unsigned in
 		usleep(10000);
 		//usleep(100);
 	}
-	ERROR2("SWIM error 0x%02d\n", status[set][0]);
+	ERROR2("SWIM error 0x%02x\n", status[set][0]);
 }
 
 static void swim_cmd(programmer_t *pgm, unsigned int length, ...) {
