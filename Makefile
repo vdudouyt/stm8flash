@@ -8,6 +8,8 @@
 
 PLATFORM=$(shell uname -s)
 DEBUG=0
+DESTDIR ?= /usr/local
+OBJDIR ?= obj
 
 # Pass RELEASE=anything to build without debug symbols
 ifneq (,$(strip $(RELEASE)))
@@ -46,16 +48,26 @@ endif
 # Respect user-supplied cflags, if any - just put ours in front.
 override CFLAGS := $(BASE_CFLAGS) $(LIBUSB_CFLAGS) $(CFLAGS)
 
-# Check if install DESTDIR is undefined
-ifndef DESTDIR
-	DESTDIR=/usr/local
-endif
+BIN 		= stm8flash
+CSRCS 	= \
+				byte_utils.c \
+				espstlink.c \
+				ihex.c \
+				libespstlink.c \
+				srec.c \
+				stlink.c \
+				stlinkv2.c \
+				stm8.c \
+   				main.c
 
-BIN 		=stm8flash
-OBJECTS 	=stlink.o stlinkv2.o espstlink.o main.o byte_utils.o ihex.o srec.o stm8.o libespstlink.o
+OBJECTS 	=$(addprefix $(OBJDIR)/, $(CSRCS:.c=.o))
 
 
 .PHONY: all clean install
+
+$(OBJDIR)/%.o: %.c
+	mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BIN)$(BIN_SUFFIX): $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $(BIN)$(BIN_SUFFIX)
@@ -68,9 +80,9 @@ libespstlink.so: libespstlink.c libespstlink.h
 	$(CC) -shared $(CFLAGS) -fPIC $< -o $@
 
 clean:
-	-rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
+	rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
+	-rmdir $(OBJDIR)
 
 install:
 	mkdir -p $(DESTDIR)/bin/
 	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/bin/
-
