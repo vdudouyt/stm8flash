@@ -83,6 +83,6 @@ clean:
 	rm -f $(OBJECTS) $(BIN)$(BIN_SUFFIX)
 	-rmdir $(OBJDIR)
 
-install:
+install: $(BIN)$(BIN_SUFFIX)
 	mkdir -p $(DESTDIR)/bin/
 	cp $(BIN)$(BIN_SUFFIX) $(DESTDIR)/bin/
