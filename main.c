@@ -54,7 +54,7 @@ programmer_t pgms[] = {
 		0x0483,
 		0x3748,
 		stlink2_open,
-		stlink_close,
+		stlink2_close,
 		stlink2_srst,
 		stlink2_swim_read_range,
 		stlink2_swim_write_range,
@@ -101,7 +101,7 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] [-s memtype] [-b bytes] [-r|-w|-v] <filename>\n", name);
 	fprintf(stream, "Usage: %s [-c programmer] [-S serialno] [-p partno] -R\n", name);
 	fprintf(stream, "Options:\n");
-	fprintf(stream, "\t-?             Display this help\n");
+	fprintf(stream, "\t-h             Display this help\n");
 	fprintf(stream, "\t-c programmer  Specify programmer used (");
 	while (1) {
 		if (pgms[i].name == NULL)
@@ -128,6 +128,7 @@ void print_help_and_exit(const char *name, bool err) {
 	fprintf(stream, "\t-w <filename>  Write data from file to device\n");
 	fprintf(stream, "\t-v <filename>  Verify data in device against file\n");
 	fprintf(stream, "\t-R             Reset the device only\n");
+	fprintf(stream, "\t-L             List attached ST-LINK compatible programmers and their serial numbers\n");
 	fprintf(stream, "\t-V             Print Date(YearMonthDay-Version) and Version format is IE: 20171204-1.0\n");
 	fprintf(stream, "\t-u             Unlock. Reset option bytes to factory default to remove write protection.\n");
 	exit(-err);
@@ -229,7 +230,8 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 			if(desc.idVendor == pgm->usb_vid && desc.idProduct == pgm->usb_pid) {
 				numOfProgrammers++;
 
-				libusb_open(devs[i], &tempHandle);
+				if (libusb_open(devs[i], &tempHandle))
+					continue;
 
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 				libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
@@ -239,7 +241,7 @@ bool usb_init(programmer_t *pgm, bool pgm_serialno_specified, char *pgm_serialno
 
 				// print programmer data if no serial number specified
 				if(!pgm_serialno_specified) {
-					fprintf(stderr, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
+					fprintf(stderr, "Programmer %d: %s %s, Serial Number: %.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 				}
 				else
 				{
@@ -305,7 +307,11 @@ void dump_stlink_programmers(void) {
 	if(r < 0) return;
 
 	{
-	const int usb_debug_level = 0;
+#ifdef STM8FLASH_LIBUSB_QUIET
+		const int usb_debug_level = 0;
+#else
+		const int usb_debug_level = 3;
+#endif
 #if defined(LIBUSB_API_VERSION) && (LIBUSB_API_VERSION >= 0x01000106)
 		libusb_set_option(ctx, LIBUSB_OPTION_LOG_LEVEL, usb_debug_level);
 #else
@@ -324,7 +330,8 @@ void dump_stlink_programmers(void) {
 		libusb_get_device_descriptor(devs[i], &desc);
 
 		if (is_interesting_usb(desc.idVendor, desc.idProduct)) {
-			libusb_open(devs[i], &tempHandle);
+			if (libusb_open(devs[i], &tempHandle))
+				continue;
 
 			libusb_get_string_descriptor_ascii(tempHandle, desc.iManufacturer, (unsigned char*)vendor, sizeof(vendor));
 			libusb_get_string_descriptor_ascii(tempHandle, desc.iProduct, (unsigned char*)device, sizeof(device));
@@ -332,13 +339,14 @@ void dump_stlink_programmers(void) {
 			serialno_to_hex(serialno, serialno_length, serialno_hex);
 
 			// print programmer data if no serial number specified
-			fprintf(stdout, "Programmer %d: %s %s, Serial Number:%.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
+			fprintf(stdout, "Programmer %d: %s %s, Serial Number: %.*s\n", numOfProgrammers, vendor, device, 2*serialno_length, serialno_hex);
 			libusb_close(tempHandle);
 			numOfProgrammers++;
 		}
 	}
 	
 	libusb_free_device_list(devs, 1);
+	libusb_exit(ctx);
 }
 
 const stm8_device_t *get_part(const char *name)
@@ -380,7 +388,7 @@ int main(int argc, char **argv) {
 	setbuf (stderr, 0); // Make stderr unbuffered (which is the default on POSIX anyway, but not on Windows).
 	setbuf (stdout, 0); // Also make stdout unbuffered (performance doesn't matter much here, bug quick progress display is useful).
 
-	while((c = getopt(argc, argv, "r:w:v:nc:S:p:d:s:b:hluVLR")) != (char)-1) {
+	while((c = getopt(argc, argv, "r:w:v:c:S:p:d:s:b:hluVLR")) != (char)-1) {
 		switch(c) {
 			case 'c':
 				pgm_specified = true;
@@ -715,5 +723,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Resetting board...\n");
 		pgm->reset(pgm);
 	}
+	if(pgm->close)
+		pgm->close(pgm);
+	libusb_exit(pgm->ctx);
 	return(0);
 }
