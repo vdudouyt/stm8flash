@@ -44,18 +44,21 @@ static bool espstlink_write_byte(programmer_t *pgm, uint8_t byte,
 
 static bool espstlink_swim_reconnect(programmer_t *pgm) {
   int version = pgm->espstlink->version;
+  bool ret = false;
 
   // Enter reset state, if the programmer firmware supports this.
   if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/0, 1)) return 0;
 
   if (!espstlink_swim_entry(pgm->espstlink)) return 0;
 
+  if (!espstlink_swim_srst(pgm->espstlink)) return 0;
+  usleep(1);
+  ret = espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
+
   // Put the reset pin back into pullup state.
   if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/1, 0)) return 0;
 
-  if (!espstlink_swim_srst(pgm->espstlink)) return 0;
-  usleep(1);
-  return espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
+  return ret;
 }
 
 // Set / Unsets the STALL bit in the DM_CSR2 register. Stops / Resumes the CPU.
