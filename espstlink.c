@@ -141,12 +141,25 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
     // not just the image to be flashed).
     memcpy(buffer + length, current + length, rounded_size - length);
 
-    uint8_t prgmode = 0x01;
-
     for (; i < length; i += device->flash_block_size) {
       // Write one block at a time.
       if (memcmp(current + i, buffer + i, device->flash_block_size)) {
+        uint8_t prgmode = 0x10;
+
         if (memtype == FLASH || memtype == EEPROM) {
+          /*
+           * Use fast block programming (prgmode = 0x10) only if we have
+           * read the flash block and verified that it is empty (all its
+           * bytes are 0x00).
+           */
+          for (int j = 0; j < device->flash_block_size; j++) {
+              if (current[i + j]) {
+                  // Not empty so use standard block programming
+                  prgmode = 0x01;
+                  break;
+              }
+          }
+
           // Block programming mode
           espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
           if(device->regs.FLASH_NCR2 != 0) {
@@ -159,8 +172,8 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
           return i;
 
         if (memtype == FLASH || memtype == EEPROM) {
-          // t_prog per the datasheets is 6ms typ, 6.6ms max
-          usleep(6000);
+          // t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
+          usleep(prgmode == 0x10 ? 3000 : 6000);
           espstlink_wait_until_transfer_completes(pgm, device);
         }
       }
