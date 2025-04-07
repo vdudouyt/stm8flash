@@ -130,14 +130,21 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
         TRY(5,espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
     }
   } else {
+    unsigned int rounded_size = ((length - 1) / device->flash_block_size + 1) * device->flash_block_size;
+    unsigned char *current = alloca(rounded_size);
+
+    // Read existing data
+    espstlink_swim_read_range(pgm, device, current, start, rounded_size);
+
+    // Extend the new data with the existing if it doesn't fill a complete flash block
+    // (this is safe as the incoming buffer is actually as big as the device's flash,
+    // not just the image to be flashed).
+    memcpy(buffer + length, current + length, rounded_size - length);
+
     uint8_t prgmode = 0x01;
 
-    for (; i < length;) {
+    for (; i < length; i += device->flash_block_size) {
       // Write one block at a time.
-      int current_size = length - i;
-      if (current_size > device->flash_block_size)
-        current_size = device->flash_block_size;
-
       if (memtype == FLASH || memtype == EEPROM) {
         // Block programming mode
         espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
@@ -147,9 +154,8 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
       }
 
       if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
-                                current_size))
+                                device->flash_block_size))
         return i;
-      i += current_size;
 
       if (memtype == FLASH || memtype == EEPROM) {
         // t_prog per the datasheets is 6ms typ, 6.6ms max
