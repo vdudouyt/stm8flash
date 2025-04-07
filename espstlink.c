@@ -89,8 +89,21 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
 
 static void espstlink_wait_until_transfer_completes(
     programmer_t *pgm, const stm8_device_t *device) {
-  // wait until the EOP bit is set.
-  TRY(8, espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x4);
+  // Wait for EOP to be set in FLASH_IAPSR
+  // provide a better error message than 'tries exceeded'
+  do {
+    int retries = 5;
+    int iapsr;
+    while (retries > 0) {
+      iapsr = espstlink_read_byte(pgm, device->regs.FLASH_IAPSR);
+      if (iapsr & 0x04) break;
+      if (iapsr & 0x01) {
+          ERROR("target page is write protected (UBC) or read-out protection is enabled");
+      }
+      retries--;
+      usleep(10000);
+    }
+  } while (0);
 }
 
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
