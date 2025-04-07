@@ -130,9 +130,11 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
       return i;
     i += current_size;
 
-    espstlink_wait_until_transfer_completes(pgm, device);
-    // TODO: Check the WR_PG_DIS bit in FLASH_IAPSR to verify if the block you
-    // attempted to program was not write protected (optional)
+    if (memtype == FLASH || memtype == EEPROM) {
+      // t_prog per the datasheets is 6ms typ, 6.6ms max
+      usleep(6000);
+      espstlink_wait_until_transfer_completes(pgm, device);
+    }
   }
   return i;
 }
