@@ -84,11 +84,7 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
     if (!espstlink_write_byte(pgm, 0x56, device->regs.FLASH_DUKR)) return 0;
   }
 
-  // Set the PRG bit in FLASH_CR2 and reset it in FLASH_NCR2.
-  uint8_t mode = 0x01;
-  uint8_t flash_cr2[] = {mode, ~mode};
-  return espstlink_swim_write(pgm->espstlink, flash_cr2, device->regs.FLASH_CR2,
-                              2);
+  return 1;
 }
 
 static void espstlink_wait_until_transfer_completes(
@@ -118,12 +114,22 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
                                unsigned int length, const memtype_t memtype) {
   espstlink_prepare_for_flash(pgm, device, memtype);
 
+  uint8_t prgmode = 0x01;
+
   size_t i = 0;
   for (; i < length;) {
     // Write one block at a time.
     int current_size = length - i;
     if (current_size > device->flash_block_size)
       current_size = device->flash_block_size;
+
+    if (memtype == FLASH || memtype == EEPROM) {
+      // Block programming mode
+      espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
+      if(device->regs.FLASH_NCR2 != 0) {
+        espstlink_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
+      }
+    }
 
     if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
                               current_size))
