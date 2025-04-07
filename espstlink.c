@@ -158,6 +158,14 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
       }
     }
   }
+
+  if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+      // Reset DUL and PUL in IAPSR to disable flash and data writes.
+      int iapsr = espstlink_read_byte(pgm, device->regs.FLASH_IAPSR);
+      if (iapsr != -1)
+        espstlink_write_byte(pgm, iapsr & (~0x0a), device->regs.FLASH_IAPSR);
+  }
+
   return i;
 }
 
