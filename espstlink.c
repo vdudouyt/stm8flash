@@ -120,10 +120,11 @@ int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
 
   size_t i = 0;
   for (; i < length;) {
-    // Write one block (128 bytes) at a time.
+    // Write one block at a time.
     int current_size = length - i;
-    if (current_size > 128)
-      current_size = 128;
+    if (current_size > device->flash_block_size)
+      current_size = device->flash_block_size;
+
     if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
                               current_size))
       return i;
