@@ -112,34 +112,50 @@ int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
 int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
                                unsigned char *buffer, unsigned int start,
                                unsigned int length, const memtype_t memtype) {
+  size_t i = 0;
+
   espstlink_prepare_for_flash(pgm, device, memtype);
 
-  uint8_t prgmode = 0x01;
-
-  size_t i = 0;
-  for (; i < length;) {
-    // Write one block at a time.
-    int current_size = length - i;
-    if (current_size > device->flash_block_size)
-      current_size = device->flash_block_size;
-
-    if (memtype == FLASH || memtype == EEPROM) {
-      // Block programming mode
-      espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
-      if(device->regs.FLASH_NCR2 != 0) {
-        espstlink_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
-      }
+  if (memtype == OPT) {
+    // Option programming mode
+    espstlink_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
+    if (device->regs.FLASH_NCR2 != 0) {
+      espstlink_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
     }
 
-    if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
-                              current_size))
-      return i;
-    i += current_size;
+    for (i = 0; i < length; i++) {
+        espstlink_write_byte(pgm, *(buffer++), start++);
+        // Wait for EOP to be set in FLASH_IAPSR
+        usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
+        TRY(5,espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
+    }
+  } else {
+    uint8_t prgmode = 0x01;
 
-    if (memtype == FLASH || memtype == EEPROM) {
-      // t_prog per the datasheets is 6ms typ, 6.6ms max
-      usleep(6000);
-      espstlink_wait_until_transfer_completes(pgm, device);
+    for (; i < length;) {
+      // Write one block at a time.
+      int current_size = length - i;
+      if (current_size > device->flash_block_size)
+        current_size = device->flash_block_size;
+
+      if (memtype == FLASH || memtype == EEPROM) {
+        // Block programming mode
+        espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
+        if(device->regs.FLASH_NCR2 != 0) {
+          espstlink_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
+        }
+      }
+
+      if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
+                                current_size))
+        return i;
+      i += current_size;
+
+      if (memtype == FLASH || memtype == EEPROM) {
+        // t_prog per the datasheets is 6ms typ, 6.6ms max
+        usleep(6000);
+        espstlink_wait_until_transfer_completes(pgm, device);
+      }
     }
   }
   return i;
