@@ -6,6 +6,7 @@
 #   - Windows (e.g. mingw-w64-x86 with libusb1.0)
 
 
+PKG_CONFIG ?= pkg-config
 PLATFORM=$(shell uname -s)
 DEBUG=0
 
@@ -24,16 +25,16 @@ endif
 BASE_CFLAGS += --std=gnu99 --pedantic -Wall
 
 ifeq ($(PLATFORM),Linux)
-	LIBS = `pkg-config --libs libusb-1.0`
-	LIBUSB_CFLAGS = `pkg-config --cflags libusb-1.0`
+	LIBS = `$(PKG_CONFIG) --libs libusb-1.0`
+	LIBUSB_CFLAGS = `$(PKG_CONFIG) --cflags libusb-1.0`
 else ifeq ($(PLATFORM),Darwin)
-	LIBS = $(shell pkg-config --libs libusb-1.0)
-	LIBUSB_CFLAGS = $(shell pkg-config --cflags libusb-1.0)
+	LIBS = $(shell $(PKG_CONFIG) --libs libusb-1.0)
+	LIBUSB_CFLAGS = $(shell $(PKG_CONFIG) --cflags libusb-1.0)
 	#MacOSSDK=$(shell xcrun --show-sdk-path)
 	#BASE_CFLAGS += -I$(MacOSSDK)/usr/include/ -I$(MacOSSDK)/usr/include/sys -I$(MacOSSDK)/usr/include/machine
 else ifeq ($(PLATFORM),FreeBSD)
-	LIBS = `pkg-config --libs libusb-1.0`
-	LIBUSB_CFLAGS = `pkg-config --cflags libusb-1.0`
+	LIBS = `$(PKG_CONFIG) --libs libusb-1.0`
+	LIBUSB_CFLAGS = `$(PKG_CONFIG) --cflags libusb-1.0`
 else
 # 	Generic case is Windows
 
