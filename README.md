@@ -119,3 +119,38 @@ Legend:
   * `?`    - Not tested.
   * `FAIL` - Not working. Needs fix.
 
+
+USB access permissions (udev)
+-----------------------------
+
+In case you get errors from libusb, for example
+
+```console
+stm8flash -c stlinkv2 -p stm8s003f3p6 -R
+# example output
+Determine FLASH area
+libusb: error [get_usbfs_fd] libusb couldn't open USB device /dev/bus/usb/002/010, errno=13
+libusb: error [get_usbfs_fd] libusb requires write access to USB device nodes
+Could not open USB device
+```
+
+You need to set permissions for the device. Determine device VID & PID
+
+```console
+lssub
+# example output
+Bus 002 Device 010: ID 0483:3748 STMicroelectronics ST-LINK/V2
+```
+
+create file /etc/udev/rules.d/99-stlinkv2.rules, with following rule
+
+```console
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", GROUP="dialout", MODE="0775"
+```
+
+which will grant users with group ***dialout*** permission to read/write to the device.
+Then reload rules and restart udev.
+
+```console
+sudo udevadm control --reload-rules && sudo service udev restart && sudo udevadm trigger
+```
