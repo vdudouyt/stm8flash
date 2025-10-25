@@ -44,18 +44,21 @@ static bool espstlink_write_byte(programmer_t *pgm, uint8_t byte,
 
 static bool espstlink_swim_reconnect(programmer_t *pgm) {
   int version = pgm->espstlink->version;
+  bool ret = false;
 
   // Enter reset state, if the programmer firmware supports this.
   if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/0, 1)) return 0;
 
   if (!espstlink_swim_entry(pgm->espstlink)) return 0;
 
+  if (!espstlink_swim_srst(pgm->espstlink)) return 0;
+  usleep(1);
+  ret = espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
+
   // Put the reset pin back into pullup state.
   if (version > 0 && !espstlink_reset(pgm->espstlink, /*input=*/1, 0)) return 0;
 
-  if (!espstlink_swim_srst(pgm->espstlink)) return 0;
-  usleep(1);
-  return espstlink_write_byte(pgm, 0xA0, 0x7f80);  // Init the SWIM_CSR.
+  return ret;
 }
 
 // Set / Unsets the STALL bit in the DM_CSR2 register. Stops / Resumes the CPU.
@@ -81,17 +84,26 @@ static bool espstlink_prepare_for_flash(programmer_t *pgm,
     if (!espstlink_write_byte(pgm, 0x56, device->regs.FLASH_DUKR)) return 0;
   }
 
-  // Set the PRG bit in FLASH_CR2 and reset it in FLASH_NCR2.
-  uint8_t mode = 0x01;
-  uint8_t flash_cr2[] = {mode, ~mode};
-  return espstlink_swim_write(pgm->espstlink, flash_cr2, device->regs.FLASH_CR2,
-                              2);
+  return 1;
 }
 
 static void espstlink_wait_until_transfer_completes(
     programmer_t *pgm, const stm8_device_t *device) {
-  // wait until the EOP bit is set.
-  TRY(8, espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x4);
+  // Wait for EOP to be set in FLASH_IAPSR
+  // provide a better error message than 'tries exceeded'
+  do {
+    int retries = 5;
+    int iapsr;
+    while (retries > 0) {
+      iapsr = espstlink_read_byte(pgm, device->regs.FLASH_IAPSR);
+      if (iapsr & 0x04) break;
+      if (iapsr & 0x01) {
+          ERROR("target page is write protected (UBC) or read-out protection is enabled");
+      }
+      retries--;
+      usleep(10000);
+    }
+  } while (0);
 }
 
 int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
@@ -113,23 +125,81 @@ int espstlink_swim_read_range(programmer_t *pgm, const stm8_device_t *device,
 int espstlink_swim_write_range(programmer_t *pgm, const stm8_device_t *device,
                                unsigned char *buffer, unsigned int start,
                                unsigned int length, const memtype_t memtype) {
+  size_t i = 0;
+
   espstlink_prepare_for_flash(pgm, device, memtype);
 
-  size_t i = 0;
-  for (; i < length;) {
-    // Write one block (128 bytes) at a time.
-    int current_size = length - i;
-    if (current_size > 128)
-      current_size = 128;
-    if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
-                              current_size))
-      return i;
-    i += current_size;
+  if (memtype == OPT) {
+    // Option programming mode
+    espstlink_write_byte(pgm, 0x80, device->regs.FLASH_CR2);
+    if (device->regs.FLASH_NCR2 != 0) {
+      espstlink_write_byte(pgm, 0x7F, device->regs.FLASH_NCR2);
+    }
 
-    espstlink_wait_until_transfer_completes(pgm, device);
-    // TODO: Check the WR_PG_DIS bit in FLASH_IAPSR to verify if the block you
-    // attempted to program was not write protected (optional)
+    for (i = 0; i < length; i++) {
+        espstlink_write_byte(pgm, *(buffer++), start++);
+        // Wait for EOP to be set in FLASH_IAPSR
+        usleep(6000); // t_prog per the datasheets is 6ms typ, 6.6ms max
+        TRY(5,espstlink_read_byte(pgm, device->regs.FLASH_IAPSR) & 0x04);
+    }
+  } else {
+    unsigned int rounded_size = ((length - 1) / device->flash_block_size + 1) * device->flash_block_size;
+    unsigned char *current = alloca(rounded_size);
+
+    // Read existing data
+    espstlink_swim_read_range(pgm, device, current, start, rounded_size);
+
+    // Extend the new data with the existing if it doesn't fill a complete flash block
+    // (this is safe as the incoming buffer is actually as big as the device's flash,
+    // not just the image to be flashed).
+    memcpy(buffer + length, current + length, rounded_size - length);
+
+    for (; i < length; i += device->flash_block_size) {
+      // Write one block at a time.
+      if (memcmp(current + i, buffer + i, device->flash_block_size)) {
+        uint8_t prgmode = 0x10;
+
+        if (memtype == FLASH || memtype == EEPROM) {
+          /*
+           * Use fast block programming (prgmode = 0x10) only if we have
+           * read the flash block and verified that it is empty (all its
+           * bytes are 0x00).
+           */
+          for (int j = 0; j < device->flash_block_size; j++) {
+              if (current[i + j]) {
+                  // Not empty so use standard block programming
+                  prgmode = 0x01;
+                  break;
+              }
+          }
+
+          // Block programming mode
+          espstlink_write_byte(pgm, prgmode, device->regs.FLASH_CR2);
+          if(device->regs.FLASH_NCR2 != 0) {
+            espstlink_write_byte(pgm, ~prgmode, device->regs.FLASH_NCR2);
+          }
+        }
+
+        if (!espstlink_swim_write(pgm->espstlink, buffer + i, start + i,
+                                  device->flash_block_size))
+          return i;
+
+        if (memtype == FLASH || memtype == EEPROM) {
+          // t_prog per the datasheets is 6ms typ, 6.6ms max, fast mode is twice as fast
+          usleep(prgmode == 0x10 ? 3000 : 6000);
+          espstlink_wait_until_transfer_completes(pgm, device);
+        }
+      }
+    }
   }
+
+  if (memtype == FLASH || memtype == EEPROM || memtype == OPT) {
+      // Reset DUL and PUL in IAPSR to disable flash and data writes.
+      int iapsr = espstlink_read_byte(pgm, device->regs.FLASH_IAPSR);
+      if (iapsr != -1)
+        espstlink_write_byte(pgm, iapsr & (~0x0a), device->regs.FLASH_IAPSR);
+  }
+
   return i;
 }
 
