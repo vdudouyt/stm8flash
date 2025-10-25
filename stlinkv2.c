@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include "stlink.h"
+#include "stlinkv2.h"
 #include "error.h"
 #include "try.h"
 #include "byte_utils.h"
