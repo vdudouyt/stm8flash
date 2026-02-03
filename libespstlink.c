@@ -34,7 +34,7 @@ static espstlink_error_t error = {0, NULL};
 espstlink_error_t *espstlink_get_last_error() { return &error; }
 
 /** Set the error message based on a format string. */
-static void set_error(int code, char *format, ...) {
+static void set_error(int code, const char *format, ...) {
   // Free an old message.
   if (error.message != NULL) free(error.message);
 
